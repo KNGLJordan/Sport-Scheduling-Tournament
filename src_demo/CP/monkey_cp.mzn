@@ -1,26 +1,30 @@
 include "alldifferent.mzn";
 
 int: n; % number of teams
-int: weeks = n-1;
+int: weeks = n-1; % number of weeks
 int: periods = n div 2; % number of periods
 
-array[1..weeks, 1..n] of var 1..n: matches;
-array[1..weeks, 1..n] of var 1..periods: periods_matrix;
+array[1..weeks, 1..n] of var 1..n: matches; % for every team and week, the opponent
+array[1..weeks, 1..n] of var 1..periods: periods_matrix;  % for every team and week, the period of the match
 
 
+% every team plays with every other team only once
 constraint
   forall(t in 1..n)(alldifferent([t] ++ [matches[w, t] | w in 1..weeks]));
   
-  
+% every team plays once a week
 constraint
   forall(w in 1..weeks)(alldifferent([matches[w, t] | t in 1..n]));
   
+% every team plays at most twice in the same period over the tournament  
 constraint 
   forall(t in 1..n, p in 1..periods)(count([periods_matrix[w, t] | w in 1..weeks], p) < 3);
- 
+
+% both team of a match have the same period
 constraint
   forall(w in 1..weeks, t in 1..n)(periods_matrix[w, t] = periods_matrix[w, matches[w, t]]);
-  
+
+% every period have exactly two teams per week
 constraint
   forall(w in 1..weeks, p in 1..periods)(count([periods_matrix[w, t] | t in 1..n], p) = 2);
 
