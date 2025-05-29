@@ -1,4 +1,5 @@
 include "alldifferent.mzn";
+include "globals.mzn";
 
 int: n; % number of teams
 int: weeks = n-1; % number of weeks
@@ -27,6 +28,17 @@ constraint
 % every period have exactly two teams per week
 constraint
   forall(w in 1..weeks, p in 1..periods)(count([periods_matrix[w, t] | t in 1..n], p) = 2);
+  
+% symmetry beaking constraint: we impose the columns of the matrix matches to be in lex order
+constraint
+  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([matches[w,t] | t in 1..n], [matches[w2,t] | t in 1..n]));
+
+% symmetry breaking for periods
+constraint
+  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([periods_matrix[w,t] | t in 1..n], [periods_matrix[w2,t] | t in 1..n]));
+  
+
+  
 
   
 solve satisfy;
