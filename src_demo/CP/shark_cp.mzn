@@ -16,7 +16,7 @@ constraint
 constraint
   forall(t1 in 1..n)(alldifferent([weeks_matrix[t2, t1] | t2 in 1..n]))::domain_propagation;
 constraint
-  forall(t1 in 1..n, t2 in 1..n where t1 = t2)(weeks_matrix[t1,t2] = 0)::domain_propagation;
+  forall(t in 1..n)(weeks_matrix[t,t] = 0)::domain_propagation;
 constraint
   forall(t1 in 1..n-1, t2 in t1+1..n)(weeks_matrix[t1,t2] = weeks_matrix[t2,t1])::domain_propagation;
   
@@ -26,7 +26,7 @@ constraint
 constraint 
   forall(t1 in 1..n, p in 1..periods)(count([periods_matrix[t2, t1] | t2 in 1..n], p) < 3)::domain_propagation;
 constraint
-  forall(t1 in 1..n, t2 in 1..n where t1 = t2)(periods_matrix[t1,t2] = 0)::domain_propagation;
+  forall(t in 1..n)(periods_matrix[t,t] = 0)::domain_propagation;
 constraint
   forall(t1 in 1..n, t2 in 1..n where t1 != t2)(periods_matrix[t1,t2] != 0)::domain_propagation;
 constraint
@@ -58,15 +58,9 @@ constraint
 solve satisfy;
 
 output [
-
-  % Intestazione con nomi delle settimane
   "              " ++
   concat([ "Week " ++ show(w) ++ "        " | w in 1..weeks ]) ++ "\n" ++
-
-  % Riga di separazione iniziale
   "           " ++ concat([ "--------------" | w in 1..weeks ]) ++ "\n" ++
-
-  % Corpo della tabella
   concat([
     "Period " ++ show(p) ++ ": |   " ++
     concat([
@@ -84,5 +78,3 @@ output [
     | p in 1..periods
   ])
 ];
-
-  
