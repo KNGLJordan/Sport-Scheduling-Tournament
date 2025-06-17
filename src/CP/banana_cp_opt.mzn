@@ -1,4 +1,8 @@
-include "alldifferent.mzn";
+% CHUFFED 0.13.2
+% n = 8: balance score = 0 in 993msec., nSolution = 3
+% n = 10: balance score = 2 in 5m 0s., nSolution = 5
+
+include "globals.mzn";
 
 int: n; % number of teams
 int: weeks = n-1;
