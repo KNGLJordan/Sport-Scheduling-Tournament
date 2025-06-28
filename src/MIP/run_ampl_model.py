@@ -2,15 +2,126 @@ from amplpy import AMPL
 import pandas as pd
 import time
 
+# ---------------------- UTILS -----------------------
+def print_square_matrix(ampl,
+                       matrix_name: str, 
+                       start_index: int,
+                       end_index: int):
+    """
+    Prints a square matrix from the AMPL model.
+    Parameters:
+        ampl (AMPL): An initialized AMPL object.
+        matrix_name (str): The name of the matrix to be printed.
+        start_index (int): The starting index for the matrix.
+        end_index (int): The ending index for the matrix.
+    Returns:
+        None
+    """
+    m = ampl.get_variable(matrix_name).get_values()
+        
+    m_values =  m.to_pandas()[matrix_name+".val"]
+        
+    print(f"--------- {matrix_name.upper()} -----------")
+    for i in range(start_index,end_index+1):
+        for j in range(start_index, end_index+1):
+            print(m_values[i][j], end=" ")
+        print()
+
+def print_tournament(ampl,
+                     n:int,
+                     periods_matrix_name: str,
+                     weeks_matrix_name: str):
+    """
+    Prints the tournament table based on the periods and weeks matrices.
+    Parameters:
+        ampl (AMPL): An initialized AMPL object.
+        n (int): The number of teams.
+        periods_matrix_name (str): The name of the periods matrix.
+        weeks_matrix_name (str): The name of the weeks matrix.
+    Returns:
+        None
+    """
+    
+    periods = n//2
+    weeks = n-1
+
+    p = ampl.get_variable(periods_matrix_name).get_values()
+    w = ampl.get_variable(weeks_matrix_name).get_values()
+
+    table = pd.DataFrame("", index=range(1, periods+1), columns=range(1, weeks+1))
+
+    for pp in range(1,periods+1):
+        for ww in range(1,weeks+1):
+            for row_p, row_w in zip(p, w):
+                i = int(row_p[0])    # keys.0
+                j = int(row_p[1])    # keys.1
+                period = int(row_p[2])  # value
+                week = int(row_w[2])    # value
+                
+                if i < j and pp==period and ww==week:
+                    
+                    table.at[pp, ww] = f"{i}-{j}"
+    
+    print("--------- TOURNAMENT -----------")
+    print(table)
+
+def print_optimized_tournament(ampl,
+                               n:int,
+                               periods_matrix_name: str,
+                               weeks_matrix_name: str,
+                               home_matrix_name: str):
+    """
+    Prints the optimized tournament table based on the periods, weeks, and home matrices.
+    Parameters:
+        ampl (AMPL): An initialized AMPL object.
+        n (int): The number of teams.
+        periods_matrix_name (str): The name of the periods matrix.
+        weeks_matrix_name (str): The name of the weeks matrix.
+        home_matrix_name (str): The name of the home matrix.
+    Returns:
+        None
+    """
+    periods = n//2
+    weeks = n-1
+
+    p = ampl.get_variable(periods_matrix_name).get_values()
+    w = ampl.get_variable(weeks_matrix_name).get_values()
+    h = ampl.get_variable(home_matrix_name).get_values()
+
+    table = pd.DataFrame("", index=range(1, periods+1), columns=range(1, weeks+1))
+
+    for pp in range(1,periods+1):
+        for ww in range(1,weeks+1):
+            for row_p, row_w, row_h in zip(p, w, h):
+
+                i = int(row_p[0])    # keys.0
+                j = int(row_p[1])    # keys.1
+                period = int(row_p[2])  # value
+                week = int(row_w[2])    # value
+                i_at_home = int(row_h[2])  # value  
+                
+                if i < j and pp==period and ww==week:
+
+                    if i_at_home == 1: # i is at home
+                        table.at[pp, ww] = f"{i}-{j}"
+                    else: # j is at home
+                        table.at[pp, ww] = f"{j}-{i}"
+    
+    print("--------- OPTIMIZED TOURNAMENT -----------")
+    print(table)
+    
+
+
 # ---------------------- FUNCTION FOR SOLVING AN INSTANCE OF THE PROBLEM -----------------------
 
 def solve_mip(ampl, 
               model_filename: str, 
               solver: str, 
-              n: int, 
+              n: int,
               option_key: str = "",
               option_value: str = "",
               time_limit: int = 300,
+              objective: str = "Unbalance",
               print_solution: bool = False):
     """
     Solves a MIP (Mixed Integer Programming) problem using the specified solver and model.
@@ -65,44 +176,48 @@ def solve_mip(ampl,
     # Print time
     print(f"n = {n}: {elapsed:.3f} sec.")
 
+    # Check if the solution is model is optimized
+    optimization = False
+    try:
+        objective_val = ampl.get_objective(objective).value()
+        print(f"{objective}: {objective_val}")
+        optimization = True
+    except Exception as e:
+        print("No optimization.")
+
     # Print solution if required
     if print_solution and elapsed < time_limit:
-        
-        # Parameters
-        weeks = int(ampl.get_parameter('weeks').value())
-        periods = int(ampl.get_parameter('periods').value())
 
-        # Variables
-        p = ampl.get_variable('periods_matrix').get_values().to_pandas()
-        w = ampl.get_variable('weeks_matrix').get_values().to_pandas()
+        # Stampa periods_matrix
+        print_square_matrix(ampl,
+                            matrix_name='periods_matrix',
+                            start_index=1,
+                            end_index=n)
 
-        # Print periods matrix
-        print("--------- PERIODS MATRIX -----------")
-        periods_mat = pd.DataFrame("", index=range(1, n+1), columns=range(1, n+1))
-        for _, row in p.iterrows():
-            i, j, val = int(row['index0']), int(row['index1']), int(row['periods_matrix.val'])
-            periods_mat.at[i, j] = val
-        print(periods_mat)
+        # Stampa weeks_matrix
+        print_square_matrix(ampl,
+                            matrix_name='weeks_matrix',
+                            start_index=1,
+                            end_index=n)
 
-        # Print weeks matrix
-        print("--------- WEEKS MATRIX -----------")
-        weeks_mat = pd.DataFrame("", index=range(1, n+1), columns=range(1, n+1))
-        for _, row in w.iterrows():
-            i, j, val = int(row['index0']), int(row['index1']), int(row['weeks_matrix.val'])
-            weeks_mat.at[i, j] = val
-        print(weeks_mat)
+        if not optimization:
 
-        # Print Tournament
-        print("--------- TOURNAMENT -----------")
-        table = pd.DataFrame("", index=range(1, periods+1), columns=range(1, weeks+1))
-        for idx in range(len(p)):
-            i = int(p.at[idx, 'index0'])
-            j = int(p.at[idx, 'index1'])
-            period = int(p.at[idx, 'periods_matrix.val'])
-            week = int(w.at[idx, 'weeks_matrix.val'])
-            if i < j:
-                table.at[period, week] = f"{i}-{j}"
-        print(table)
+            print_tournament(ampl,
+                             n=n,
+                             periods_matrix_name='periods_matrix',
+                             weeks_matrix_name='weeks_matrix')
+        else:
+
+            print_square_matrix(ampl,
+                                matrix_name='home_matrix',
+                                start_index=1,
+                                end_index=n)
+            
+            print_optimized_tournament(ampl,
+                                       n=n,
+                                       periods_matrix_name='periods_matrix',
+                                       weeks_matrix_name='weeks_matrix',
+                                       home_matrix_name='home_matrix')
 
     return elapsed
 
@@ -134,7 +249,7 @@ solver_dict = {
 solver_keys = [
     'gurobi',
     # 'cbc',
-    #'cplex',
+    # 'cplex',
     # 'highs'
 ]
 
@@ -143,7 +258,7 @@ solver_keys = [
 def main():
 
     # Name of the model file (.mod)
-    model_filename = 'shark_mip.mod'
+    model_filename = 'shark_mip_opt.mod'
 
     # Time limit
     time_limit = 300
@@ -152,7 +267,7 @@ def main():
     ampl = AMPL()
 
     for s_key in solver_keys:
-        for n in range(14, 16, 2):
+        for n in range(12, 14, 2):
             elapsed = solve_mip(ampl=ampl,
                                 model_filename=model_filename, 
                                 solver=solver_dict[s_key]['solver'],
@@ -160,7 +275,8 @@ def main():
                                 option_key=solver_dict[s_key]['option_key'],
                                 option_value=solver_dict[s_key]['option_value'],
                                 time_limit=time_limit,
-                                print_solution=False)
+                                objective="Unbalance",
+                                print_solution=True)
 
             if elapsed >= time_limit:
                 break
