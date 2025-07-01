@@ -36,9 +36,10 @@ solver_keys = [
 # ------------------------------- MODELS ----------------------------------
 
 models = [
-    'shark_mip_noHAmat.mod'
-    'shark_mip.mod',
-    'shark_mip_opt.mod'
+    #'shark_mip_noHAmat.mod',
+    'shrk_mip_2.mod'
+    #'shark_mip.mod',
+    #'shark_mip_opt.mod'
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
@@ -68,7 +69,7 @@ def print_solutions(model_filename: str,
 
 def main():
 
-    print_solutions(model_filename='shark_mip_noHAmat.mod', n_values=range(6,12,2), time_limit=300, print_solution=False)
+    print_solutions(model_filename='MIP/models/shark_mip_2.mod', n_values=range(6,12,2), time_limit=300, print_solution=True)
 
 
 if __name__ == '__main__':
