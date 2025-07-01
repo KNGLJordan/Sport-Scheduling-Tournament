@@ -1,32 +1,52 @@
 # Gurobi 12.0.2:   lim:time = 300
 
-# n = 6: 0.129 sec.
-# n = 8: 0.495 sec.
-# n = 10: 3.329 sec.
-# n = 12: 39.686 sec.
-# n = 14: 300.872 sec.
+    # n = 6: 0.109 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 0.509 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 3.492 sec.
+    # Unbalance: 0.0
+
+    # n = 12: 20.736 sec.
+    # Unbalance: 0.0
 
 # cbc 2.10.12:   double:seconds = 300
 
-# n = 6: 0.306 sec.
-# n = 8: 0.724 sec.
-# n = 10: 97.416 sec.
-# n = 12: 300.923 sec.
+    # n = 6: 0.697 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 37.622 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 69.987 sec.
+    # Unbalance: 0.0
 
 # CPLEX 22.1.2:   lim:time = 300
 
-# n = 6: 0.116 sec.
-# n = 8: 0.835 sec.
-# n = 10: 4.103 sec.
-# n = 12: 23.670 sec.
-# n = 14: 300.756 sec.
+    # n = 6: 0.214 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 2.204 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 5.210 sec.
+    # Unbalance: 0.0
+
+    # n = 12: 276.688 sec.
+    # Unbalance: 0.0
 
 # HiGHS 1.11.0:   lim:time = 300
 
-# n = 6: 0.127 sec.
-# n = 8: 0.279 sec.
-# n = 10: 300.675 sec.
+    # n = 6: 0.322 sec.
+    # Unbalance: 0.0
 
+    # n = 8: 9.329 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 249.657 sec.
+    # Unbalance: 0.0
 
 param n;
 param weeks := n - 1;
@@ -35,10 +55,11 @@ param periods := n div 2;
 set Teams := 1..n;
 set WeekVals := 0..weeks;    
 set PeriodVals := 0..periods;
+set HomeAwayVals := -1..1;
 
 # unary encoding for weeks_matrix
 
-var w_enc{i in Teams, j in Teams, w in WeekVals} binary;
+var w_enc{i in Teams, j in Teams, w in WeekVals} binary; # binary or integer??? TO-THINK
 var weeks_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotWeek{i in Teams, j in Teams}:
@@ -49,7 +70,7 @@ subject to EncodeWeek{i in Teams, j in Teams}:
 
 # unary encoding for periods_matrix
 
-var p_enc{i in Teams, j in Teams, p in PeriodVals} binary;
+var p_enc{i in Teams, j in Teams, p in PeriodVals} binary; # binary or integer??? TO-THINK
 var periods_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotPeriod{i in Teams, j in Teams}:
@@ -57,6 +78,26 @@ subject to OneHotPeriod{i in Teams, j in Teams}:
 
 subject to EncodePeriod{i in Teams, j in Teams}:
     periods_matrix[i,j] = sum{p in PeriodVals} p * p_enc[i,j,p];
+
+# unary encoding for home/away matrix
+
+var h_enc{i in Teams, j in Teams, h in HomeAwayVals} binary;
+var home_matrix {i in Teams, j in Teams} integer;
+
+subject to OneHotHome{i in Teams, j in Teams}:
+    sum{h in HomeAwayVals} h_enc[i,j,h] = 1;
+
+subject to EncodeHome{i in Teams, j in Teams}:
+    home_matrix[i,j] = sum{h in HomeAwayVals} h * h_enc[i,j,h];
+
+# ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
+
+# Minimize the sum over teams of the absolute value of the sum of each row (excluding diagonal)
+# (n can be substracted since the lower bound is n, which is the number of teams)
+
+minimize Unbalance:
+    sum{i in Teams} abs(sum{j in Teams: i != j} home_matrix[i,j]) - n;
+
 
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------
 
@@ -75,6 +116,14 @@ subject to DiagonalPeriod{i in Teams}:
 
 subject to NoOtherPeriod{i in Teams, p in PeriodVals: p != 0}:
     p_enc[i,i,p] = 0;
+
+# a team does not play against itself in any home/away match
+
+subject to DiagonalHome{i in Teams}:
+    h_enc[i,i,0] = 1;
+
+subject to NoOtherHome{i in Teams, h in HomeAwayVals: h != 0}:
+    h_enc[i,i,h] = 0;
 
 # ---------------------------- WEEKS MATRIX ----------------------------------------------------------------
 
@@ -113,6 +162,16 @@ subject to NoZeroPeriodMatch{t1 in Teams, t2 in Teams: t1 != t2}:
 # % every period have the same number of matches
 subject to MatchesPerPeriod{p in PeriodVals: p > 0}:
     sum {t1 in Teams, t2 in Teams: t1 != t2} p_enc[t1, t2, p] = weeks * 2;
+
+# ---------------------------- HOME/AWAY MATRIX -------------------------------------------------------------
+
+# every match is either home or away
+subject to NoZeroHomeAwayMatch{t1 in Teams, t2 in Teams: t1 != t2}:
+    h_enc[t1, t2, 0] = 0;
+
+# the matches are symmetric (if 1 plays at home against 2, then also 2 plays away against 1)
+subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams, h in HomeAwayVals: t1 < t2}:
+    h_enc[t1, t2, h] = h_enc[t2, t1, -h];
 
 # -------------------- SAME WEEK => DIFFERENT PERIOD --------------------------------------------------------
 

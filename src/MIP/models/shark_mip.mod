@@ -1,50 +1,8 @@
-# Gurobi 12.0.2:   lim:time = 300
 
-    # n = 6: 0.109 sec.
-    # Unbalance: 0.0
 
-    # n = 8: 0.509 sec.
-    # Unbalance: 0.0
 
-    # n = 10: 3.492 sec.
-    # Unbalance: 0.0
 
-    # n = 12: 20.736 sec.
-    # Unbalance: 0.0
-
-# cbc 2.10.12:   double:seconds = 300
-
-    # n = 6: 0.697 sec.
-    # Unbalance: 0.0
-
-    # n = 8: 37.622 sec.
-    # Unbalance: 0.0
-
-    # n = 10: 69.987 sec.
-    # Unbalance: 0.0
-
-# CPLEX 22.1.2:   lim:time = 300
-
-    # n = 6: 0.214 sec.
-    # Unbalance: 0.0
-
-    # n = 8: 2.204 sec.
-    # Unbalance: 0.0
-
-    # n = 10: 5.210 sec.
-    # Unbalance: 0.0
-
-# HiGHS 1.11.0:   lim:time = 300
-
-    # n = 6: 0.322 sec.
-    # Unbalance: 0.0
-
-    # n = 8: 9.329 sec.
-    # Unbalance: 0.0
-
-    # n = 10: 249.657 sec.
-    # Unbalance: 0.0
-
+#--------------------------------------------------------- MODEL WITH HOME MATRIX --------------------------------------------------------------------------------
 param n;
 param weeks := n - 1;
 param periods := n div 2;
@@ -56,7 +14,7 @@ set HomeAwayVals := -1..1;
 
 # unary encoding for weeks_matrix
 
-var w_enc{i in Teams, j in Teams, w in WeekVals} binary;
+var w_enc{i in Teams, j in Teams, w in WeekVals} binary; # binary or integer??? TO-THINK
 var weeks_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotWeek{i in Teams, j in Teams}:
@@ -67,7 +25,7 @@ subject to EncodeWeek{i in Teams, j in Teams}:
 
 # unary encoding for periods_matrix
 
-var p_enc{i in Teams, j in Teams, p in PeriodVals} binary;
+var p_enc{i in Teams, j in Teams, p in PeriodVals} binary; # binary or integer??? TO-THINK
 var periods_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotPeriod{i in Teams, j in Teams}:
@@ -86,15 +44,6 @@ subject to OneHotHome{i in Teams, j in Teams}:
 
 subject to EncodeHome{i in Teams, j in Teams}:
     home_matrix[i,j] = sum{h in HomeAwayVals} h * h_enc[i,j,h];
-
-# ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
-
-# Minimize the sum over teams of the absolute value of the sum of each row (excluding diagonal)
-# (n can be substracted since the lower bound is n, which is the number of teams)
-
-minimize Unbalance:
-    sum{i in Teams} abs(sum{j in Teams: i != j} home_matrix[i,j]) - n;
-
 
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------
 
@@ -195,6 +144,3 @@ subject to LinkZ3{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 <
 
 subject to AlldifferentPeriodsPerWeek{w in WeekVals, p in PeriodVals}:
     sum{t1 in Teams, t2 in Teams: t1 < t2} z_enc[t1,t2,w,p] <= 1;
-
-
-
