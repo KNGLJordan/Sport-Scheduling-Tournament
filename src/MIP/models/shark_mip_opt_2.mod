@@ -6,7 +6,6 @@ param periods := n div 2;
 set Teams := 1..n;
 set WeekVals := 0..weeks;    
 set PeriodVals := 0..periods;
-set HomeAwayVals := -1..1;
 
 # unary encoding for weeks_matrix
 

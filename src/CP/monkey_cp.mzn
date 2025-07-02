@@ -28,10 +28,6 @@ constraint
 % every team plays at most twice in the same period over the tournament  
 constraint 
   forall(t in 1..n, p in 1..periods)(count([periods_matrix[w, t] | w in 1..weeks], p) < 3);
-  
-% % every period have exactly two teams per week (implicit in this model but not in the optimized one?SUS)
-% constraint
-%   forall(w in 1..weeks, p in 1..periods)(count([periods_matrix[w, t] | t in 1..n], p) = 2)::domain_propagation;
 
 % both team of a match have the same period
 constraint

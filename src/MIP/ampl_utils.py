@@ -5,17 +5,17 @@ import time
 from solution_checker import check_solution
 
 # ---------------------- UTILS -----------------------
-def print_square_matrix(ampl,
-                       matrix_name: str, 
-                       start_index: int,
-                       end_index: int):
+def print_matrix(ampl,
+                matrix_name: str, 
+                row_range,
+                col_range):
     """
-    Prints a square matrix from the AMPL model.
+    Prints a matrix from the AMPL model.
     Parameters:
         ampl (AMPL): An initialized AMPL object.
         matrix_name (str): The name of the matrix to be printed.
-        start_index (int): The starting index for the matrix.
-        end_index (int): The ending index for the matrix.
+        row_range: Range of rows to print.
+        col_range: Range of columns to print.
     Returns:
         None
     """
@@ -24,64 +24,27 @@ def print_square_matrix(ampl,
     m_values =  m.to_pandas()[matrix_name+".val"]
         
     print(f"--------- {matrix_name.upper()} -----------")
-    for i in range(start_index,end_index+1):
-        for j in range(start_index, end_index+1):
+    for i in row_range:
+        for j in col_range:
             print(int(round(m_values[i][j])), end=" ")
         print()
 
-def get_solution_noHAmat(ampl,
-                     n:int,
-                     periods_matrix_name: str,
-                     weeks_matrix_name: str):
+
+def get_shark_solution(ampl,
+                            n:int,
+                            weeks_matrix_name: str,
+                            periods_matrix_name: str,
+                            home_matrix_name: str,
+                            HM_mat_present: bool):
     """
-    Returns the tournament solution based on the periods and weeks matrices.
+    Returns the tournament solution based on the periods, weeks, and home matrices.
     Parameters:
         ampl (AMPL): An initialized AMPL object.
         n (int): The number of teams.
-        periods_matrix_name (str): The name of the periods matrix.
         weeks_matrix_name (str): The name of the weeks matrix.
-    Returns:
-        solution (list): A list of lists representing the tournament solution.
-    """
-
-    solution = []
-    
-    periods = n//2
-    weeks = n-1
-
-    p = ampl.get_variable(periods_matrix_name).get_values()
-    w = ampl.get_variable(weeks_matrix_name).get_values()
-
-    for pp in range(1,periods+1):
-        period_solution = []
-        for ww in range(1,weeks+1):
-            for row_p, row_w in zip(p, w):
-                i = int(round(row_p[0]))    # keys.0
-                j = int(round(row_p[1]))    # keys.1
-                period = int(round(row_p[2]))  # value
-                week = int(round(row_w[2]))    # value
-                
-                if i < j and pp==period and ww==week:
-                    
-                    period_solution.append([i,j])
-        solution.append(period_solution)
-    
-    return solution
-    
-
-def get_solution(ampl,
-                               n:int,
-                               periods_matrix_name: str,
-                               weeks_matrix_name: str,
-                               home_matrix_name: str):
-    """
-    Returns the optimized tournament solution based on the periods, weeks, and home matrices.
-    Parameters:
-        ampl (AMPL): An initialized AMPL object.
-        n (int): The number of teams.
         periods_matrix_name (str): The name of the periods matrix.
-        weeks_matrix_name (str): The name of the weeks matrix.
         home_matrix_name (str): The name of the home matrix.
+        HM_mat_present (bool): Whether home matrix is present.
     Returns:
         solution (list): A list of lists representing the tournament solution.
     """
@@ -92,30 +55,153 @@ def get_solution(ampl,
 
     p = ampl.get_variable(periods_matrix_name).get_values()
     w = ampl.get_variable(weeks_matrix_name).get_values()
-    h = ampl.get_variable(home_matrix_name).get_values()
 
-    for pp in range(1,periods+1):
-        period_solution = []
-        for ww in range(1,weeks+1):
-            for row_p, row_w, row_h in zip(p, w, h):
-
-                i = int(round(row_p[0]))    # keys.0
-                j = int(round(row_p[1]))    # keys.1
-                period = int(round(row_p[2]))  # value
-                week = int(round(row_w[2]))    # value
-                i_at_home = int(round(row_h[2]))  # value  
-                
-                if i < j and pp==period and ww==week:
-
-                    if i_at_home == 1: # i is at home
-                        period_solution.append([i,j])
-                    else: # j is at home
-                        period_solution.append([j,i])
+    if HM_mat_present:
+        h = ampl.get_variable(home_matrix_name).get_values()
         
-        solution.append(period_solution)
+        for pp in range(1,periods+1):
+            period_solution = []
+            for ww in range(1,weeks+1):
+                for row_p, row_w, row_h in zip(p, w, h):
+
+                    i = int(row_p[0])    # keys.0
+                    j = int(row_p[1])    # keys.1
+                    period = int(row_p[2])  # value
+                    week = int(row_w[2])    # value
+                    i_at_home = int(row_h[2])  # value  
+                    
+                    if i < j and pp==period and ww==week:
+
+                        if i_at_home == 1: # i is at home
+                            period_solution.append([i,j])
+                        else: # j is at home
+                            period_solution.append([j,i])
+            
+            solution.append(period_solution)
+
+    else:
+
+        for pp in range(1,periods+1):
+            period_solution = []
+            for ww in range(1,weeks+1):
+                for row_p, row_w in zip(p, w):
+                    i = int(row_p[0])    # keys.0
+                    j = int(row_p[1])    # keys.1
+                    period = int(row_p[2])  # value
+                    week = int(row_w[2])    # value
+                    
+                    if i < j and pp==period and ww==week:
+                        
+                        period_solution.append([i,j])
     
+            solution.append(period_solution)
+
     return solution
+
+def get_monkey_solution(ampl,
+                            n: int,
+                            matches_matrix_name: str,
+                            periods_matrix_name: str,
+                            home_matrix_name: str,
+                            HM_mat_present: bool):
+    """    Returns the tournament solution based on the matches, periods, and home matrices.
+    Parameters:
+        ampl (AMPL): An initialized AMPL object.
+        n (int): The number of teams.
+        matches_matrix_name (str): The name of the matches matrix.
+        periods_matrix_name (str): The name of the periods matrix.
+        home_matrix_name (str): The name of the home matrix.
+        HM_mat_present (bool): Whether home matrix is present.
+    Returns:
+        solution (list): A list of lists representing the tournament solution.
+    """
+    solution = []
+
+    weeks = n-1
+    periods = n//2
     
+    m = ampl.get_variable(matches_matrix_name).get_values().to_pandas().reset_index()
+    p = ampl.get_variable(periods_matrix_name).get_values().to_pandas().reset_index()
+
+    if HM_mat_present:
+        h = ampl.get_variable(home_matrix_name).get_values().to_pandas().reset_index()
+
+        for pp in range(1, periods+1):
+            period_solution = []
+            for ww in range(1, weeks+1):
+                match = p[(p['index0'] == ww) & (p[f'{periods_matrix_name}.val'] == pp)]['index1'].tolist()
+                home1 = int(round(h[(h['index0'] == ww) & (h['index1'] == match[0])][f'{home_matrix_name}.val'].item()))
+                home2 = int(round(h[(h['index0'] == ww) & (h['index1'] == match[1])][f'{home_matrix_name}.val'].item()))
+
+                # print(f'Match in week {ww} and period {pp}: {match}, home: {home1}, {home2}')
+                
+                if home1 == 1 and home2 == 0:
+                    period_solution.append(match)
+                elif home2 == 1 and home1 == 0:
+                    period_solution.append([match[1], match[0]])
+                else:
+                    print("Error: home team not found for match", match, "in week", ww, "and period", pp)
+        
+            solution.append(period_solution)
+
+    else:
+        for pp in range(1, periods+1):
+            period_solution = []
+            for ww in range(1, weeks+1):
+                match = p[(p['index0'] == ww) & (p[f'{periods_matrix_name}.val'] == pp)]['index1'].tolist()
+                print(f'Match in week {ww} and period {pp}: {match}')
+                period_solution.append(match)
+
+            solution.append(period_solution)    
+
+    return solution
+
+def print_monkey(ampl,
+                 n: int,
+                 HM_mat_present: bool):
+    
+    # Print matches matrix
+    print_matrix(ampl,
+                    matrix_name='matches',
+                    row_range=range(1, n),
+                    col_range=range(1, n+1))
+    
+    # Print periods matrix
+    print_matrix(ampl,
+                    matrix_name='periods_matrix',
+                    row_range=range(1, n),
+                    col_range=range(1, n+1))
+    
+    if HM_mat_present:
+        # Print home matrix
+        print_matrix(ampl,
+                    matrix_name='home_matrix',
+                    row_range=range(1, n),
+                    col_range=range(1, n+1))
+    
+def print_shark(ampl,
+                 n: int,
+                 HM_mat_present: bool):
+    
+    # print weeks_matrix
+    print_matrix(ampl,
+                matrix_name='weeks_matrix',
+                row_range=range(1, n+1),
+                col_range=range(1, n+1))
+
+    # print periods_matrix
+    print_matrix(ampl,
+                matrix_name='periods_matrix',
+                row_range=range(1, n+1),
+                col_range=range(1, n+1))
+    
+    if HM_mat_present:
+        # print home_matrix
+        print_matrix(ampl,
+                    matrix_name='home_matrix',
+                    row_range=range(1, n+1),
+                    col_range=range(1, n+1))
+
 def print_tournament(sol: list):
     """
     Prints the tournament solution in a readable format.
@@ -220,17 +306,26 @@ def solve_mip(ampl: AMPL,
     # Get solution
     if elapsed >= time_limit:
         sol = None
-    elif HM_mat_present:
-        sol = get_solution(ampl=ampl,
-                            n=n,
-                            periods_matrix_name='periods_matrix',
-                            weeks_matrix_name='weeks_matrix',
-                            home_matrix_name='home_matrix')
+    elif "monkey" in model_filename:
+        # print_monkey(ampl,
+        #              n=n,
+        #              HM_mat_present=HM_mat_present)
+        sol = get_monkey_solution(ampl=ampl,
+                                  n=n,
+                                  matches_matrix_name='matches',
+                                  periods_matrix_name='periods_matrix',
+                                  home_matrix_name='home_matrix',
+                                  HM_mat_present=HM_mat_present)
+    elif "shark" in model_filename:
+        sol = get_shark_solution(ampl=ampl,
+                                 n=n,
+                                 weeks_matrix_name='weeks_matrix',
+                                 periods_matrix_name='periods_matrix',
+                                 home_matrix_name='home_matrix',
+                                 HM_mat_present=HM_mat_present)
     else:
-        sol = get_solution_noHAmat(ampl=ampl,
-                            n=n,
-                            periods_matrix_name='periods_matrix',
-                            weeks_matrix_name='weeks_matrix')
+        print("Unknown model type. Cannot get solution.")
+        sol = None
     
 
     # Check solution
@@ -240,24 +335,21 @@ def solve_mip(ampl: AMPL,
     # Print solution if required
     if sol and print_solution and elapsed < time_limit:
 
-        # Stampa periods_matrix
-        print_square_matrix(ampl,
-                            matrix_name='periods_matrix',
-                            start_index=1,
-                            end_index=n)
+        if "monkey" in model_filename:
 
-        # Stampa weeks_matrix
-        print_square_matrix(ampl,
-                            matrix_name='weeks_matrix',
-                            start_index=1,
-                            end_index=n)
+            print_monkey(ampl, 
+                         n=n,
+                         HM_mat_present=HM_mat_present)
 
-        if optimization:
+        elif "shark" in model_filename:
 
-            print_square_matrix(ampl,
-                                matrix_name='home_matrix',
-                                start_index=1,
-                                end_index=n)
+            print_shark(ampl,
+                        n=n,
+                        HM_mat_present=HM_mat_present)
+            
+        else:
+
+            print("Unknown model type. Cannot print solution.")
             
             
         print_tournament(sol)
