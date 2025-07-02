@@ -262,4 +262,10 @@ def solve_mip(ampl: AMPL,
             
         print_tournament(sol)
 
-    return elapsed, optimization, objective_val, sol
+    # optimal, a Boolean true iff the instance is solved for the decision version, or solved to optimality for the optimization version
+    if (not optimization) or (optimization and elapsed < time_limit): # optimal 
+        optimal = True
+    else:
+        optimal = False
+
+    return elapsed, optimal, objective_val, sol
