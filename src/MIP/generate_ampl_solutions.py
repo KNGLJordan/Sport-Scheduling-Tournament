@@ -10,22 +10,22 @@ solver_dict = {
     'gurobi': {
         'solver': 'gurobi',
         'option_key': 'gurobi_options',
-        'option_value': 'timelimit=300',
+        'option_value': 'timelimit=',
     },
     'cbc': {
         'solver': 'cbc',
         'option_key': 'cbc_options',
-        'option_value': 'seconds=300',
+        'option_value': 'seconds=',
     },
     'cplex': {
         'solver': 'cplex',
         'option_key': 'cplex_options',
-        'option_value': 'timelimit=300',
+        'option_value': 'timelimit=',
     },
     'highs': {
         'solver': 'highs',
         'option_key': 'highs_options',
-        'option_value': 'time_limit=300',
+        'option_value': 'time_limit=',
     }
 }
 
@@ -57,6 +57,7 @@ def produce_json(n_values:list, folder:str = "../../res/MIP/"):
 
     errors = 0
 
+    time_limit = 20  # seconds
 
     for n in n_values:
         for model in models:
@@ -66,8 +67,8 @@ def produce_json(n_values:list, folder:str = "../../res/MIP/"):
                                                     solver=solver_dict[s_key]['solver'],
                                                     n=n,
                                                     option_key=solver_dict[s_key]['option_key'],
-                                                    option_value=solver_dict[s_key]['option_value'],
-                                                    time_limit=300,
+                                                    option_value=solver_dict[s_key]['option_value']+str(time_limit),
+                                                    time_limit=time_limit,
                                                     objective="Unbalance",
                                                     print_solution=False)
                 

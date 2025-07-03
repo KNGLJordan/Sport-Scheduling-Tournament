@@ -279,6 +279,7 @@ def solve_mip(ampl: AMPL,
     ampl.set_option("presolve", 0)
     ampl.set_option("solver_msg", 0) 
     ampl.set_option("solver", solver)
+    ampl.set_option("seed", 33)
 
     # Check for an option to be set (the time limit)
     if option_value != "":
@@ -325,12 +326,10 @@ def solve_mip(ampl: AMPL,
         
 
     # Get solution
-    if elapsed >= time_limit:
-        sol = None
-    elif "monkey" in model_filename:
-        # print_monkey(ampl,
-        #              n=n,
-        #              HM_mat_present=HM_mat_present)
+    # if elapsed >= time_limit:
+    #     sol = None
+    # el
+    if "monkey" in model_filename:
         sol = get_monkey_solution(ampl=ampl,
                                   n=n,
                                   matches_matrix_name='matches',
@@ -348,13 +347,16 @@ def solve_mip(ampl: AMPL,
         print("Unknown model type. Cannot get solution.")
         sol = None
     
+    if not all(sol):
+        sol = None
 
     # Check solution
     if sol:
+        print(sol)
         print(check_solution(sol))
 
     # Print solution if required
-    if sol and print_solution and elapsed < time_limit:
+    if sol and print_solution:# and elapsed < time_limit:
 
         if "monkey" in model_filename:
 
