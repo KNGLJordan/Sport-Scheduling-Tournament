@@ -221,7 +221,7 @@ array[1..n, 1..n] of var -1..1: home_matrix;  % for every pair of team on the ro
 
 % ---------------------- OBJECTIVE (J) ----------------------
 
-var int: unbalance_score = sum(t1 in 1..n)(abs(sum(t2 in 1..n)(home_matrix[t1,t2])));
+var int: unbalance_score = sum(t1 in 1..n)(abs(sum(t2 in 1..n)(home_matrix[t1,t2]))) - n;
 
 % ---------------------- CONSTRAINTS ----------------------
 
