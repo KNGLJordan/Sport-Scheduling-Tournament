@@ -44,6 +44,8 @@ models = [
     'shark_mip.mod',
     'shark_mip_opt.mod',
     'shark_mip_opt_2.mod',
+    'monkey_mip.mod',
+    'monkey_mip_opt.mod',
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
@@ -110,7 +112,7 @@ def produce_json(n_values:list, folder:str = "../../res/MIP/"):
 
 def main():
 
-    produce_json(n_values=list(range(6, 12, 2)))
+    produce_json(n_values=list(range(6, 16, 2)))
 
 
 if __name__ == '__main__':

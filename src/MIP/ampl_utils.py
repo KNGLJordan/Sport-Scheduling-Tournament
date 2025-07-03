@@ -64,11 +64,11 @@ def get_shark_solution(ampl,
             for ww in range(1,weeks+1):
                 for row_p, row_w, row_h in zip(p, w, h):
 
-                    i = int(row_p[0])    # keys.0
-                    j = int(row_p[1])    # keys.1
-                    period = int(row_p[2])  # value
-                    week = int(row_w[2])    # value
-                    i_at_home = int(row_h[2])  # value  
+                    i = int(round(row_p[0]))    # keys.0
+                    j = int(round(row_p[1]))    # keys.1
+                    period = int(round(row_p[2]))  # value
+                    week = int(round(row_w[2]))    # value
+                    i_at_home = int(round(row_h[2]))  # value  
                     
                     if i < j and pp==period and ww==week:
 
@@ -85,10 +85,10 @@ def get_shark_solution(ampl,
             period_solution = []
             for ww in range(1,weeks+1):
                 for row_p, row_w in zip(p, w):
-                    i = int(row_p[0])    # keys.0
-                    j = int(row_p[1])    # keys.1
-                    period = int(row_p[2])  # value
-                    week = int(row_w[2])    # value
+                    i = int(round(row_p[0]))    # keys.0
+                    j = int(round(row_p[1]))    # keys.1
+                    period = int(round(row_p[2]))  # value
+                    week = int(round(row_w[2]))    # value
                     
                     if i < j and pp==period and ww==week:
                         
@@ -120,36 +120,57 @@ def get_monkey_solution(ampl,
     weeks = n-1
     periods = n//2
     
-    m = ampl.get_variable(matches_matrix_name).get_values().to_pandas().reset_index()
-    p = ampl.get_variable(periods_matrix_name).get_values().to_pandas().reset_index()
+    p = ampl.get_variable(periods_matrix_name).get_values()
 
     if HM_mat_present:
-        h = ampl.get_variable(home_matrix_name).get_values().to_pandas().reset_index()
+        h = ampl.get_variable(home_matrix_name).get_values()
 
         for pp in range(1, periods+1):
             period_solution = []
             for ww in range(1, weeks+1):
-                match = p[(p['index0'] == ww) & (p[f'{periods_matrix_name}.val'] == pp)]['index1'].tolist()
-                home1 = int(round(h[(h['index0'] == ww) & (h['index1'] == match[0])][f'{home_matrix_name}.val'].item()))
-                home2 = int(round(h[(h['index0'] == ww) & (h['index1'] == match[1])][f'{home_matrix_name}.val'].item()))
+                match = [0, 0]
+                for row_p, row_h in zip(p, h):
 
-                # print(f'Match in week {ww} and period {pp}: {match}, home: {home1}, {home2}')
-                
-                if home1 == 1 and home2 == 0:
-                    period_solution.append(match)
-                elif home2 == 1 and home1 == 0:
-                    period_solution.append([match[1], match[0]])
-                else:
-                    print("Error: home team not found for match", match, "in week", ww, "and period", pp)
-        
+                    week = int(round(row_p[0]))
+                    t = int(round(row_p[1]))
+                    period = int(round(row_p[2]))
+                    home = int(round(row_h[2]))
+                    
+                    if week == ww and period == pp and home == 1:
+                        if match[0] == 0:
+                            match[0] = t
+                        else:
+                            print(f"Error: more than one home team in week {ww} and period {pp}, found {match[0]} and {t}")
+                    elif week == ww and period == pp and home == 0:
+                        if match[1] == 0:
+                            match[1] = t
+                        else:
+                            print(f"Error: more than one away team in week {ww} and period {pp}, found {match[1]} and {t}")
+                    
+                if match[0] == 0 or match[1] == 0:
+                    print(f"Error: match not fully assigned in week {ww} and period {pp}")
+
+                period_solution.append(match)
+
             solution.append(period_solution)
 
     else:
         for pp in range(1, periods+1):
             period_solution = []
             for ww in range(1, weeks+1):
-                match = p[(p['index0'] == ww) & (p[f'{periods_matrix_name}.val'] == pp)]['index1'].tolist()
-                print(f'Match in week {ww} and period {pp}: {match}')
+                match = []  
+                for row_p in p:
+
+                    week = int(round(row_p[0]))
+                    t = int(round(row_p[1]))
+                    period = int(round(row_p[2]))
+                    
+                    if week == ww and period == pp:
+                        match.append(t)
+                
+                if len(match) != 2:
+                    print(f'Error: found {len(match)} teams in week {ww} and period {pp}, expected 2 teams.')
+
                 period_solution.append(match)
 
             solution.append(period_solution)    

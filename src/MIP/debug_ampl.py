@@ -69,7 +69,7 @@ def print_solutions(model_filename: str,
 
 def main():
 
-    print_solutions(model_filename='MIP/models/shark_mip_2.mod', n_values=range(6,12,2), time_limit=300, print_solution=True)
+    print_solutions(model_filename='./models/monkey_mip_opt.mod', n_values=range(6,12,2), time_limit=300, print_solution=True)
 
 
 if __name__ == '__main__':
