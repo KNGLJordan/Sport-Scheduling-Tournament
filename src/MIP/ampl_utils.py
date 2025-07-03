@@ -326,9 +326,6 @@ def solve_mip(ampl: AMPL,
         
 
     # Get solution
-    # if elapsed >= time_limit:
-    #     sol = None
-    # el
     if "monkey" in model_filename:
         sol = get_monkey_solution(ampl=ampl,
                                   n=n,
@@ -352,11 +349,10 @@ def solve_mip(ampl: AMPL,
 
     # Check solution
     if sol:
-        print(sol)
         print(check_solution(sol))
 
     # Print solution if required
-    if sol and print_solution:# and elapsed < time_limit:
+    if sol and print_solution:
 
         if "monkey" in model_filename:
 
