@@ -7,11 +7,18 @@ from models.sat_model_z3_thread import sports_scheduling_sat_safe
 from models.sat_model_z3_binarysearch import sports_scheduling_sat
 import sys
 
+safe=1
+if safe:
+    sports_scheduling = sports_scheduling_sat_safe
+else:
+    sports_scheduling = sports_scheduling_sat
+
+
 models = {
-    "sat_z3_binsearch_heule": [sports_scheduling_sat_safe, "he"],
-    "sat_z3_binsearch_seq": [sports_scheduling_sat_safe, "seq"],
-    "sat_z3_binsearch_np": [sports_scheduling_sat_safe, "np"],
-    "sat_z3_binseach_bw": [sports_scheduling_sat_safe, "bw"],
+    "sat_z3_binsearch_heule": [sports_scheduling, "he"],
+    "sat_z3_binsearch_seq": [sports_scheduling, "seq"],
+   # "sat_z3_binsearch_np": [sports_scheduling, "np"],
+    "sat_z3_binseach_bw": [sports_scheduling, "bw"],
 }
 
 def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
@@ -27,6 +34,7 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
                 "sol": []
             }
         }
+
     else:
         check = check_solution(schedule)
         if check != "Valid solution":
@@ -75,7 +83,7 @@ def main():
     for n in ns:
         for model_name, model_func in models.items():
             print(f"Solving n={n} with model={model_name} (optimize={optimize})")
-            timeout = 10  # Set a timeout of 5 minutes
+            timeout = 300  # Set a timeout of 5 minutes
             elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])
             if schedule is not None:
                 weeks = len(schedule[0])

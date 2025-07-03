@@ -83,15 +83,16 @@ def sports_scheduling_sat(n, timeout=300, optimize=True, encoding='heule'):
 
         # Add constraints for home/away game balance
         if optimize:
-            min_home = (weeks // 2)
-            max_home = (weeks + 1) // 2
+            min_home = (weeks // 2) - imbalance
+            max_home = (weeks + 1) // 2 + imbalance
             for t in teams:
                 home_games = [home[t, w, p] for w in range(weeks) for p in range(periods)]
                 s.add(at_least_k(home_games, min_home, f"home_min_{t}"))
                 s.add(at_most_k(home_games, max_home, f"home_max_{t}"))
 
         return s
-
+    
+    
     if optimize:
         low, high = 0, weeks // 2
         """ Example with n = 6, weeks = 5
