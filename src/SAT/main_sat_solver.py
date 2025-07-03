@@ -3,33 +3,47 @@ import os
 from time import time
 from math import floor
 from solution_checker import check_solution
+from models.sat_model_z3_thread import sports_scheduling_sat_safe
 from models.sat_model_z3_binarysearch import sports_scheduling_sat
+import sys
 
 models = {
-    "sat_z3_binsearch": sports_scheduling_sat
+    "sat_z3_binsearch_heule": [sports_scheduling_sat_safe, "he"],
+    "sat_z3_binsearch_seq": [sports_scheduling_sat_safe, "seq"],
+    "sat_z3_binsearch_np": [sports_scheduling_sat_safe, "np"],
+    "sat_z3_binseach_bw": [sports_scheduling_sat_safe, "bw"],
 }
 
-def save_result(n, model_name, result, folder="../../res/SAT/"):
+def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
     elapsed, optimal, obj, schedule = result
-    if schedule is None:
-        print(f"\t[!] No solution for n={n}, model={model_name}")
-        return
 
-    check = check_solution(schedule)
-    if check != "Valid solution":
-        print(f"\t[!] Invalid solution for n={n}, model={model_name}: {check}")
-        return
+    if schedule is None:
+        print(f"\t[!] No solution for n={n}, model={model_name}. Time: {elapsed:.2f} seconds")
+        data = {
+            model_name: {
+                "time": min(floor(elapsed), timeout),
+                "optimal": False,
+                "obj": None,
+                "sol": []
+            }
+        }
+    else:
+        check = check_solution(schedule)
+        if check != "Valid solution":
+            print(f"\t[!] Invalid solution for n={n}, model={model_name}: {check}")
+            return
+        data = {
+            model_name: {
+                "time": min(floor(elapsed), timeout),
+                "optimal": bool(optimal) if optimal is not None else False,
+                "obj": int(obj) if obj is not None else None,
+                "sol": schedule
+            }
+        }
 
     os.makedirs(folder, exist_ok=True)
     filename = os.path.join(folder, f"{n}.json")
-    data = {
-        model_name: {
-            "time": floor(elapsed),
-            "optimal": bool(optimal) if optimal is not None else False,
-            "obj": int(obj) if obj is not None else None,
-            "sol": schedule
-        }
-    }
+
 
     try:
         with open(filename, "r") as f:
@@ -41,14 +55,28 @@ def save_result(n, model_name, result, folder="../../res/SAT/"):
     with open(filename, "w") as f:
         json.dump(existing, f, indent=4)
 
-
 def main():
-    ns = list(range(6, 12, 2))  # change as needed
+    """ Usage: python main_sat_solver.py [n_start] [n_end] [optimize] 
+           If optimize=False: just solve the decision problem (imbalance is not minimized, just check feasibility).
+           If optimize=True: do the search for minimum imbalance.
+          Set the optimal output as:
+            For decision: True if a solution is found, else False.
+            For optimization: True if best_imbalance == 0 and not timeout, else False.  
+          Set the objective output as:
+            For decision: None.
+            For optimization: best_imbalance found."""
+
+    n_start = int(sys.argv[1]) if len(sys.argv) > 1 else 6
+    n_end = int(sys.argv[2]) if len(sys.argv) > 2 else 12
+    optimize = bool(int(sys.argv[3])) if len(sys.argv) > 3 else True
+    save_res = bool(int(sys.argv[4])) if len(sys.argv) > 4 else True
+
+    ns = list(range(n_start, n_end, 2))
     for n in ns:
         for model_name, model_func in models.items():
-            print(f"Solving n={n} with model={model_name}")
-            elapsed, optimal, obj, schedule = model_func(n=n, timeout=300) #ADJUST!!!
-
+            print(f"Solving n={n} with model={model_name} (optimize={optimize})")
+            timeout = 10  # Set a timeout of 5 minutes
+            elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])
             if schedule is not None:
                 weeks = len(schedule[0])
                 print("        ", end="")
@@ -61,7 +89,6 @@ def main():
                         print(f"{game[0]} v {game[1]}".center(10), end="")
                     print()
                 print(f"\nExecution time: {elapsed:.2f} seconds")
-
                 # Print home/away counts for each team
                 total_imbalance = 0
                 for t in range(n):
@@ -69,12 +96,18 @@ def main():
                     away_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][1] == t + 1)
                     print(f"Team {t + 1}: Home {home_count}, Away {away_count}")
                     total_imbalance += abs(home_count - away_count)
-                print(f"Total imbalance: {total_imbalance - n} (should be 0)")
+                print(f"Total imbalance: {total_imbalance - n} (should be 0)\n")
             else:
                 print("\tNo solution found.")
-
-            save_result(n, model_name, (elapsed, optimal, obj, schedule))
-
+            if(obj and save_result):
+                save_result(n, model_name, (elapsed, optimal, total_imbalance-n, schedule), timeout=timeout)
+            elif(save_result):
+                save_result(n, model_name, (elapsed, optimal, obj, schedule), timeout=timeout)
+        print("\n" + "=" * 80 + "\n")
+    print("All models completed.")
+    if save_res:
+        print(f"Results saved in {os.path.abspath('../../res/SAT/')}")
+        print("You can check the results in the corresponding JSON files.")
 
 if __name__ == "__main__":
     main()

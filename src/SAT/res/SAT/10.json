@@ -1,0 +1,20 @@
+{
+    "sat_z3_binsearch_seq": {
+        "time": 10,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "sat_z3_binsearch_np": {
+        "time": 10,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "sat_z3_binseach_bw": {
+        "time": 10,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    }
+}
