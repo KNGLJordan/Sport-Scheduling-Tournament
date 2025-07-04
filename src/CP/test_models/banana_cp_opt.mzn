@@ -40,7 +40,10 @@ constraint
   forall(t in 1..n, j in 1..periods)(count([tournament[i, j, k] | i in 1..weeks, k in 1..2], t) < 3);
 
 % NOTE: thanks to the lower bound equal to 0, we can minimize the abs of unbalance_Score so that if it reaches 0 the search terminates
-solve minimize abs(unbalance_score);
+%solve minimize abs(unbalance_score);
+solve
+::int_search(tournament, first_fail, indomain_min)
+satisfy;
 
 output [
 

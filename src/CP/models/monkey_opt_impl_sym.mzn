@@ -49,6 +49,22 @@ constraint
 constraint
   forall(w in 1..weeks, t in 1..n)(home_matrix[w, t] != home_matrix[w, matches[w, t]])::domain_propagation;
 
+% --- IMPLIED CONSTRAINTS ---
+
+% 1. every match is symmetric
+constraint
+  forall(w in 1..weeks, t in 1..n)(matches[w, matches[w, t]] = t);
+
+% --- SYMMETRY BREAKING ---
+
+% 1. impose the columns of the matrix matches to be in lex order
+constraint
+  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([matches[w,t] | t in 1..n], [matches[w2,t] | t in 1..n]));
+
+% 2. same as above for periods
+constraint
+  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([periods_matrix[w,t] | t in 1..n], [periods_matrix[w2,t] | t in 1..n]));  
+
 % --- SOLVE ---
 
 solve minimize abs(unbalance_score);

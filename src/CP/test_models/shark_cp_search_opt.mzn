@@ -297,10 +297,19 @@ constraint
 
 
 % ---------------------- SOLVING DECISION ----------------------
+% solve 
+% :: int_search(weeks_matrix, input_order, indomain_random)
+% :: restart_luby(25)
+% :: relax_and_reconstruct([home_matrix[i,j] | i in 1..n, j in 1..n] ,85) 
+% satisfy;
 solve 
-:: int_search(weeks_matrix, input_order, indomain_random)
-%:: restart_luby(125)
-:: relax_and_reconstruct([home_matrix[i,j] | i in 1..n, j in 1..n] ,50) 
+:: seq_search ([ 
+    int_search(weeks_matrix, dom_w_deg, indomain_split),
+%    int_search(periods_matrix, first_fail, indomain_split),
+%    int_search(home_matrix, first_fail, indomain_split)
+   ])
+:: restart_luby(25)
+%:: relax_and_reconstruct([home_matrix[i,j] | i in 1..n, j in 1..n] ,85) 
 satisfy;
 
 % ---------------------- SOLVING OPTIMIZATION ----------------------

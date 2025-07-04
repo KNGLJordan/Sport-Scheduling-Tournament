@@ -19,6 +19,10 @@ python -m amplpy.modules install gurobi
 python -m amplpy.modules install cbc
 python -m amplpy.modules install cplex
 
+# === Install minizinc ===
+python3 -m pip install --no-cache-dir minizinc
+python3 -m pip install --no-cache-dir pymzn
+
 # === License activation ===
 echo
 echo "AMPL license not yet activated."
