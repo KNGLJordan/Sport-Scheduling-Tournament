@@ -279,7 +279,6 @@ def solve_mip(ampl: AMPL,
     ampl.set_option("presolve", 0)
     ampl.set_option("solver_msg", 0) 
     ampl.set_option("solver", solver)
-    ampl.set_option("seed", 33)
 
     # Check for an option to be set (the time limit)
     if option_value != "":
@@ -346,6 +345,7 @@ def solve_mip(ampl: AMPL,
     
     if not all(sol):
         sol = None
+        print("No solution found or solution is empty.")
 
     # Check solution
     if sol:
@@ -366,6 +366,9 @@ def solve_mip(ampl: AMPL,
                         n=n,
                         HM_mat_present=HM_mat_present)
             
+            # print(ampl.get_variable('balance').get_values())
+            # print(ampl.get_variable('max_balance').get_values())
+            # print(ampl.get_variable('min_balance').get_values())
         else:
 
             print("Unknown model type. Cannot print solution.")
