@@ -111,7 +111,7 @@ def get_shark_opt_solution(n, result):
 
     return solution
 
-def solve_cp(n: int, model: str, solver:str, timeout: int = 300):
+def solve_cp(n: int, model: str, solver:str, timeout: int = 300, seed: int = 81):
 
     # Create a model instance
     model_path = os.path.join("models", model) 
@@ -131,7 +131,7 @@ def solve_cp(n: int, model: str, solver:str, timeout: int = 300):
 
     # Solve the instance
     start_time = time.time()
-    result = instance.solve(timeout=timelimit)
+    result = instance.solve(timeout=timelimit, random_seed=seed)
     end_time = time.time()
     
     solve_time = math.floor(end_time - start_time)
@@ -208,44 +208,55 @@ def produce_json(n_values:list, folder:str = "../../res/CP/"):
 # ---------------------------------- SOLVERS -----------------------------------
 solvers = [
     'gecode',
-    'chuffed'
+    #'chuffed'
     ]
 
 # ---------------------------------- MODELS ----------------------------------
 
 models = [
-    "monkey.mzn",
+    #"monkey.mzn",
     "monkey_sym.mzn",
-    "monkey_opt.mzn",
-    "monkey_opt_sym.mzn",
-    "shark.mzn",
-    "shark_sym.mzn",
-    "shark_sym_search_inp_rand_luby_rr.mzn",
-    "shark_opt.mzn",
-    "shark_opt_sym.mzn",
-    "shark_opt_sym_search_inp_rand_luby_rr.mzn",
+    #"monkey_opt.mzn",
+    #"monkey_opt_sym.mzn",
+    #"shark.mzn",
+    #"shark_sym.mzn",
+    #"shark_sym_search_inp_rand_luby_rr.mzn",
+    #"shark_opt.mzn",
+    #"shark_opt_sym.mzn",
+    #"shark_opt_sym_search_inp_rand_luby_rr.mzn",
 ]
+
+# ---------------------------------- INSTANCES ----------------------------------
+
+n_values = range(6, 12, 2)
+
+# ---------------------------------- SEED ------------------------------------
+
+seed = 81
 
 # ---------------------------------- MAIN  -----------------------------------
 
 def main():
     
     # --- TESTING solve_cp ---
-    # for m in models:
-    #     for s in solvers:
-    #         time, optimal, obj, sol = solve_cp(n=6, model=m, solver=s, timeout=300)
+    
+    for n in n_values:
+        for m in models:
+            for s in solvers:
+                time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed)
 
-    #         print(f"--------- {m} - {s} ----------")
-    #         print()
-    #         print("Solution:", sol)
-    #         print("Time:", time)
-    #         print("Obj:", obj)
-    #         print("Optimal:", optimal)
-    #         print(check_solution(sol))
-    #         print()
+                print(f"--------- n = {n} - {m} - {s} ----------")
+                print()
+                if sol:
+                    print("Solution:", sol)
+                    print("Time:", time)
+                    print("Obj:", obj)
+                    print("Optimal:", optimal)
+                    print(check_solution(sol))
+                print()
 
     # --- TESTING produce_json ---
-    produce_json(range(6,12,2))
+    #produce_json(n_values)
     
 
 

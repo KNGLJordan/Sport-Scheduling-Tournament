@@ -6,7 +6,6 @@ param periods := n div 2;
 set Teams := 1..n;
 set WeekVals := 1..weeks;    
 set PeriodVals := 1..periods;
-# set HomeAwayVals := -1..1;
 
 # unary encoding for matches
 
@@ -36,8 +35,40 @@ var home_matrix {w in WeekVals, i in Teams} binary;
 
 # ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
 
+var balance {t in Teams} integer, >= -periods, <= periods;
+
+subject to BalanceCalculation {t in Teams}:
+    balance[t] = 2 * sum {w in WeekVals} home_matrix[w,t] - weeks;
+
+var b_max {t in Teams} binary;
+var b_min {t in Teams} binary;
+var max_balance;
+var min_balance;
+
+subject to only_one_b_max:
+    sum {t in Teams} b_max[t] = 1;
+
+subject to max_balance_is_greater {t in Teams}:
+    max_balance >= balance[t];
+
+subject to max_selector {t in Teams}:
+    max_balance <= balance[t] + (2 * periods) * (1 - b_max[t]);
+
+
+subject to only_one_b_min:
+    sum {t in Teams} b_min[t] = 1;
+
+subject to min_balance_is_lower {t in Teams}:
+    min_balance <= balance[t];
+
+subject to min_selector {t in Teams}:
+    min_balance >= balance[t] - (2 * periods) * (1 - b_min[t]);
+
 minimize Unbalance:
-    sum{i in Teams} abs(2 * sum{w in WeekVals} home_matrix[w,i] - weeks) - n;
+    max_balance - min_balance - 2;
+
+# minimize Unbalance:
+#     (sum{i in Teams} abs(2 * sum{w in WeekVals} home_matrix[w,i] - weeks)) - n;
 
 # ---------------------------- MATCHES MATRIX ----------------------------------------------------------------
 

@@ -105,6 +105,7 @@ constraint
 % --- SOLVE ---
 solve 
 :: int_search(weeks_matrix, input_order, indomain_random)
-:: restart_luby(125)
-:: relax_and_reconstruct([home_matrix[i,j] | i in 1..n, j in 1..n] ,50) 
-satisfy;
+:: restart_luby(25)
+:: relax_and_reconstruct([home_matrix[i,j] | i in 1..n, j in 1..n] ,85) 
+satisfy; 
+
