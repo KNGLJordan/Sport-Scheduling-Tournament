@@ -3,15 +3,25 @@ import os
 from time import time
 from math import floor
 from solution_checker import check_solution
-from models.sat_model_z3_thread import sports_scheduling_sat_safe
+from models.sat_model_z3_thread import sports_scheduling_sat_multiprocess
 from models.sat_model_z3_binarysearch import sports_scheduling_sat
+from models.sat_model_z3_thread_new_faster import sports_scheduling_sat as sports_scheduling_sat_goat
+from models.sat_model_z3_binarysearch_new import sports_scheduling_sat as sports_scheduling_sat_new
 import sys
 
-safe=1
-if safe:
-    sports_scheduling = sports_scheduling_sat_safe
+use_multiprocess= 1
+use_new_optimization_function = 1
+if use_multiprocess:
+    if use_new_optimization_function:
+        sports_scheduling = sports_scheduling_sat_new
+    else:
+        sports_scheduling = sports_scheduling_sat_multiprocess
 else:
     sports_scheduling = sports_scheduling_sat
+
+theGreatest=1
+if theGreatest:
+    sports_scheduling = sports_scheduling_sat_goat
 
 
 models = {

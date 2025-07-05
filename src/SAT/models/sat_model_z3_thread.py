@@ -1,9 +1,33 @@
 from z3 import *
 from itertools import combinations
+from math import ceil
 import time
 import numpy as np
 from .encodings import *
 import multiprocessing
+
+from z3 import *
+from itertools import combinations
+from math import ceil
+import time
+import numpy as np
+from .encodings import *
+import multiprocessing
+
+def extract_schedule(model, home, away, teams, weeks, periods):
+    sched = [[None] * weeks for _ in range(periods)]
+    for w in range(weeks):
+        for p in range(periods):
+            home_team = None
+            away_team = None
+            for i in teams:
+                if is_true(model.evaluate(home[i, w, p], model_completion=True)):
+                    home_team = i + 1
+                if is_true(model.evaluate(away[i, w, p], model_completion=True)):
+                    away_team = i + 1
+            sched[p][w] = [home_team, away_team]
+    return sched
+
 
 def _sat_worker(queue, n, timeout, optimize, encoding):
     start_time = time.time()
@@ -36,17 +60,14 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
     def build_solver(imbalance=None):
         s = Solver()
         s.set("random_seed", 42)
-
         for w in range(weeks):
             for p in range(periods):
                 s.add(exactly_one([home[t, w, p] for t in teams], name=f"slot_home_{w}_{p}"))
                 s.add(exactly_one([away[t, w, p] for t in teams], name=f"slot_away_{w}_{p}"))
-       
         for t in teams:
             for w in range(weeks):
                 vars_in_week = [home[t, w, p] for p in range(periods)] + [away[t, w, p] for p in range(periods)]
                 s.add(exactly_one(vars_in_week, name=f"team_plays_{t}_{w}"))
-      
         for i, j in combinations(teams, 2):
             match_slots = []
             for w in range(weeks):
@@ -56,93 +77,72 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                            And(home[j, w, p], away[i, w, p]))
                     )
             s.add(exactly_one(match_slots, name=f"pair_meets_{i}_{j}"))
-        
         for t in teams:
             for p in range(periods):
                 games = [home[t, w, p] for w in range(weeks)] + [away[t, w, p] for w in range(weeks)]
                 s.add(at_most_k(games, 2, name=f"team_{t}_period_{p}"))
-       
-        if optimize:
+        
+        if optimize and imbalance is None: #we are in the optimization case, and in particular we are in its first iteration (the one that simply checks the decision problem)
+            print(f'trying to optimize with no imbalance, just decision problem')
+
+        if optimize and imbalance is not None: #we are in the optimization case, and in particular not in its first iteration (the one that simply checks the decision problem)
             min_home = (weeks // 2) - imbalance
             max_home = (weeks + 1) // 2 + imbalance
+            print(f'trying to optimize with min_home={min_home} and max_home={max_home}')
             for t in teams:
                 home_games = [home[t, w, p] for w in range(weeks) for p in range(periods)]
                 s.add(at_least_k(home_games, min_home, f"home_min_{t}"))
                 s.add(at_most_k(home_games, max_home, f"home_max_{t}"))
         return s
+    
+    def decision_problem_feasible():
+        s = build_solver()
+        result = s.check()
+        if result != sat:
+            elapsed = time.time() - start_time
+            queue.put((elapsed, False, None, None))
+            return False
+        m = s.model()
+        sched = extract_schedule(m, home, away, teams, weeks, periods)
+        elapsed = time.time() - start_time
+        queue.put((elapsed, True, None, sched))
+        return True
+
 
     if optimize:
+        # Always check decision problem first
+        if not decision_problem_feasible():
+            return
+
         low, high = 0, weeks // 2
         best_model = None
         best_imbalance = None
         best_sched = None
+
         while low <= high:
             mid = (low + high) // 2
             s = build_solver(mid)
             if s.check() == sat:
                 best_model = s.model()
                 best_imbalance = mid
-                high = mid - 1
-                # Extract schedule for this solution
-                sched = [[None] * weeks for _ in range(periods)]
-                for w in range(weeks):
-                    for p in range(periods):
-                        home_team = None
-                        away_team = None
-                        for i in teams:
-                            if is_true(best_model.evaluate(home[i, w, p], model_completion=True)):
-                                home_team = i + 1
-                            if is_true(best_model.evaluate(away[i, w, p], model_completion=True)):
-                                away_team = i + 1
-                        sched[p][w] = [home_team, away_team]
-                best_sched = sched
-                # Put the current best result in the queue
+                best_sched = extract_schedule(best_model, home, away, teams, weeks, periods)
                 queue.put((time.time() - start_time, (best_imbalance == 0), best_imbalance, best_sched))
+                high = mid - 1
             else:
                 low = mid + 1
-        elapsed = time.time() - start_time
-        
+            elapsed = time.time() - start_time
+
         if best_model is None:
             queue.put((elapsed, False, None, None))
             return
-        
-        sched = [[None] * weeks for _ in range(periods)]
-        for w in range(weeks):
-            for p in range(periods):
-                home_team = None
-                away_team = None
-                for i in teams:
-                    if is_true(best_model.evaluate(home[i, w, p], model_completion=True)):
-                        home_team = i + 1
-                    if is_true(best_model.evaluate(away[i, w, p], model_completion=True)):
-                        away_team = i + 1
-                sched[p][w] = [home_team, away_team]
 
         optimal = (best_imbalance == 0 and elapsed < timeout)
-        queue.put((elapsed, optimal, best_imbalance, sched))
-        
-    else:
-        s = build_solver()
-        result = s.check()
-        elapsed = time.time() - start_time
-        if result != sat:
-            queue.put((elapsed, False, None, None))
-            return
-        m = s.model()
-        sched = [[None] * weeks for _ in range(periods)]
-        for w in range(weeks):
-            for p in range(periods):
-                home_team = None
-                away_team = None
-                for i in teams:
-                    if is_true(m.evaluate(home[i, w, p], model_completion=True)):
-                        home_team = i + 1
-                    if is_true(m.evaluate(away[i, w, p], model_completion=True)):
-                        away_team = i + 1
-                sched[p][w] = [home_team, away_team]
-        queue.put((elapsed, True, None, sched))
+        queue.put((elapsed, optimal, best_imbalance, best_sched))
 
-def sports_scheduling_sat_safe(n, timeout=300, optimize=True, encoding='heule'):
+    else:
+        decision_problem_feasible()
+
+def sports_scheduling_sat_multiprocess(n, timeout=300, optimize=True, encoding='heule'):
 
     if encoding not in ['he', 'seq', 'np', 'bw']:
         raise ValueError(f"Unsupported encoding: {encoding}. Supported encodings are 'heule', 'seq', 'np' and 'bw'.")

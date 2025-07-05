@@ -1,0 +1,24 @@
+So we have to change the binary search. Remember: max(imbalances) and min(imbalances) will both be always odd numbers, since the possible combinations of games are, for example when n=6, i.e. weeks=5, 0-5, 1-4, 2-3. The difference is always odd. Therefore max(imbalances) and min(imbalances) will both be always odd numbers. Therefore, the optimization function can only be even. we will consider this in our binary search, because we will ignore even mid points.
+we can do binary search starting from 0 and 8 (0 and 2n-4), which are the theoretical extrema. obj function = 4 (mid point). The possible solutions are:
+3 - (-3) - 2
+1 -(-5) - 2 
+-> we pick 3 and -5 (because the first element has to be the max(imbalances) and the second has to be the min.
+That 3 will be the difference between the at most and at least for home.
+That -5 will be the difference between that at most and at least for away
+
+Now we halve the obj function, which becomes 2. Possible solutions:
+3 - (-1) - 2
+1 - (-3) - 2
+-> we pick 3 and -3. 
+That 3 will be the difference between the at most and at least for home (4 and 1).
+That -3 will be the difference between that at most and at least for away (-1 and 4).
+
+Now obj function =1 (to which you have to add 2) -> 3
+But there are not two odd numbers which sum up to 3. we sort of skip when the obj function is odd. Because of the reasons we said before.
+
+Now obj function = 0
+1-(-1)-2=0
+
+I want you to 
+a. write this reasoning in a formal way for my report, and explain how we will do binary search
+b. implement the full new code of  sports_scheduling_sat according to this new optimization logic.
