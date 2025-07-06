@@ -27,7 +27,7 @@ if theGreatest:
 models = {
     "sat_z3_binsearch_heule": [sports_scheduling, "he"],
     "sat_z3_binsearch_seq": [sports_scheduling, "seq"],
-   # "sat_z3_binsearch_np": [sports_scheduling, "np"],
+    "sat_z3_binsearch_np": [sports_scheduling, "np"],
     "sat_z3_binseach_bw": [sports_scheduling, "bw"],
 }
 
@@ -92,8 +92,8 @@ def main():
     ns = list(range(n_start, n_end, 2))
     for n in ns:
         for model_name, model_func in models.items():
-            print(f"Solving n={n} with model={model_name} (optimize={optimize})")
-            timeout = 300  # Set a timeout of 5 minutes
+            print(f"SOLVING N={n} WITH MODEL={model_name} (OPTIMIZE={optimize})")
+            timeout = 30  # Set a timeout of 5 minutes
             elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])
             if schedule is not None:
                 weeks = len(schedule[0])
@@ -107,20 +107,20 @@ def main():
                         print(f"{game[0]} v {game[1]}".center(10), end="")
                     print()
                 print(f"\nExecution time: {elapsed:.2f} seconds")
-                # Print home/away counts for each team
-                total_imbalance = 0
+
+                #we print for every team the number of home and away games
                 for t in range(n):
                     home_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][0] == t + 1)
                     away_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][1] == t + 1)
                     print(f"Team {t + 1}: Home {home_count}, Away {away_count}")
-                    total_imbalance += abs(home_count - away_count)
-                print(f"Total imbalance: {total_imbalance - n} (should be 0)\n")
+                if optimize:
+                    print(f"Objective function score (max imb - min imb - 2): {obj} (ideally should be 0)\n")
             else:
                 print("\tNo solution found.")
-            if(obj and save_result):
-                save_result(n, model_name, (elapsed, optimal, total_imbalance-n, schedule), timeout=timeout)
-            elif(save_result):
+            if(save_result and optimize):
                 save_result(n, model_name, (elapsed, optimal, obj, schedule), timeout=timeout)
+            if (save_result and not optimize):
+                save_result(n, model_name, (elapsed, optimal, None, schedule), timeout=timeout)
         print("\n" + "=" * 80 + "\n")
     print("All models completed.")
     if save_res:

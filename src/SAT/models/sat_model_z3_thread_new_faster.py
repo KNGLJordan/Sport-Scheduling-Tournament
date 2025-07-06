@@ -57,14 +57,14 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
         # Each slot has exactly one home and one away team
         for w in range(weeks):
             for p in range(periods):
-                s.add(exactly_one_seq([home[t, w, p] for t in teams], name=f"slot_home_{w}_{p}"))
-                s.add(exactly_one_seq([away[t, w, p] for t in teams], name=f"slot_away_{w}_{p}"))
+                s.add(exactly_one([home[t, w, p] for t in teams], name=f"slot_home_{w}_{p}"))
+                s.add(exactly_one([away[t, w, p] for t in teams], name=f"slot_away_{w}_{p}"))
 
         # Each team plays exactly once per week (either home or away)
         for t in teams:
             for w in range(weeks):
                 vars_in_week = [home[t, w, p] for p in range(periods)] + [away[t, w, p] for p in range(periods)]
-                s.add(exactly_one_seq(vars_in_week, name=f"team_plays_{t}_{w}"))
+                s.add(exactly_one(vars_in_week, name=f"team_plays_{t}_{w}"))
 
         # Each pair of teams meets exactly once
         for i, j in combinations(teams, 2):
@@ -75,20 +75,20 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                         Or(And(home[i, w, p], away[j, w, p]),
                            And(home[j, w, p], away[i, w, p]))
                     )
-            s.add(exactly_one_seq(match_slots, name=f"pair_meets_{i}_{j}"))
+            s.add(exactly_one(match_slots, name=f"pair_meets_{i}_{j}"))
 
         # No team plays more than twice in any period
         for t in teams:
             for p in range(periods):
                 games = [home[t, w, p] for w in range(weeks)] + [away[t, w, p] for w in range(weeks)]
-                s.add(at_most_k_seq(games, 2, name=f"team_{t}_period_{p}"))
+                s.add(at_most_k(games, 2, name=f"team_{t}_period_{p}"))
 
         # Home/away game constraints for fairness
         if optimize and (min_home is not None and max_home is not None):
             for t in teams:
                 home_games = [home[t, w, p] for w in range(weeks) for p in range(periods)]
-                s.add(at_least_k_seq(home_games, min_home, name=f"min_home_{t}"))
-                s.add(at_most_k_seq(home_games, max_home, name=f"max_home_{t}"))
+                s.add(at_least_k(home_games, min_home, name=f"min_home_{t}"))
+                s.add(at_most_k(home_games, max_home, name=f"max_home_{t}"))
 
                 #is it necessary to also use the away games constraints?
                 #we have to prove that if all teams are constrained to play between, e.g., 1 and 4 home games,
@@ -105,15 +105,40 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
     def decision_problem_feasible():
         s = build_solver()
         result = s.check()
+        elapsed = time.time() - start_time
         if result != sat:
-            elapsed = time.time() - start_time
             queue.put((elapsed, False, None, None))
             return False
+
         m = s.model()
         sched = extract_schedule(m, home, away, teams, weeks, periods)
-        elapsed = time.time() - start_time
-        queue.put((elapsed, True, None, sched))
+
+        # Compute imbalance: home_games - away_games per team
+        imbalances = []
+        for t in teams:
+            home_games = sum(
+                1 for w in range(weeks) for p in range(periods)
+                if is_true(m.evaluate(home[t, w, p], model_completion=True))
+            )
+            away_games = sum(
+                1 for w in range(weeks) for p in range(periods)
+                if is_true(m.evaluate(away[t, w, p], model_completion=True))
+            )
+            imbalances.append(home_games - away_games)
+
+
+        obj = max(imbalances) - min(imbalances) - 2
+        optimal = (obj == 0 and elapsed < timeout) or (not optimize)
+
+        if not optimize:
+            # For decision problem, we return True if feasible, else False. and objective function None
+            queue.put((elapsed, optimal, None, sched))
+            return True
+        else:
+            queue.put((elapsed, optimal, obj, sched))
+        
         return True
+
 
 
     if optimize:
@@ -212,6 +237,8 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
             queue.put((elapsed, False, None, None))
             return
 
+        #we compute best_objective_value as we know: max(imbalances)-min(imbalances)-2
+        best_obj = temp_max - temp_min - 2
         optimal = (best_obj == 0 and elapsed < timeout)
         queue.put((elapsed, optimal, best_obj, best_sched))
 

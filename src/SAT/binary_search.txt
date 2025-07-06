@@ -1,7 +1,10 @@
-So we have to change the binary search. Remember: max(imbalances) and min(imbalances) will both be always odd numbers, since the possible combinations of games are, for example when n=6, i.e. weeks=5, 0-5, 1-4, 2-3. The difference is always odd. Therefore max(imbalances) and min(imbalances) will both be always odd numbers. Therefore, the optimization function can only be even. we will consider this in our binary search, because we will ignore even mid points.
-we can do binary search starting from 0 and 8 (0 and 2n-4), which are the theoretical extrema. obj function = 4 (mid point). The possible solutions are:
-3 - (-3) - 2
-1 -(-5) - 2 
+So we have to change the binary search. Remember: max(imbalances) and min(imbalances) will both be always odd numbers, since the possible combinations of games are, for example when n=6, i.e. weeks=5, 0-5, 1-4, 2-3. The difference is always odd. Therefore max(imbalances) and min(imbalances) will both be always odd numbers. Therefore, the optimization function can only be even. we will consider this in our binary search, because we will ignore odd mid points.
+
+we can do binary search starting from 0 and 8 (0 and 2n-4), which are the theoretical extrema.
+
+ obj function = 4 (mid point). The possible solutions are:
+3 - (-3) - 2 = 4
+1 -(-5) - 2 = 4
 -> we pick 3 and -5 (because the first element has to be the max(imbalances) and the second has to be the min.
 That 3 will be the difference between the at most and at least for home.
 That -5 will be the difference between that at most and at least for away

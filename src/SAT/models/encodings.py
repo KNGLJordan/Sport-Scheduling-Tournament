@@ -29,8 +29,11 @@ def at_least_one_seq(bool_vars):
     return at_least_one_np(bool_vars)
 
 def at_most_one_seq(bool_vars, name):
-    constraints = []
     n = len(bool_vars)
+    if n <= 1:
+        return True  # No constraints needed
+
+    constraints = []
     s = [Bool(f"s_{name}_{i}") for i in range(n - 1)]
     constraints.append(Or(Not(bool_vars[0]), s[0]))
     constraints.append(Or(Not(bool_vars[n-1]), Not(s[n-2])))
@@ -39,6 +42,7 @@ def at_most_one_seq(bool_vars, name):
         constraints.append(Or(Not(bool_vars[i]), Not(s[i-1])))
         constraints.append(Or(Not(s[i-1]), s[i]))
     return And(constraints)
+
 
 def exactly_one_seq(bool_vars, name):
     return And(at_least_one_seq(bool_vars), at_most_one_seq(bool_vars, name))
