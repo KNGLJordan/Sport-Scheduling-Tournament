@@ -93,7 +93,7 @@ def main():
     for n in ns:
         for model_name, model_func in models.items():
             print(f"SOLVING N={n} WITH MODEL={model_name} (OPTIMIZE={optimize})")
-            timeout = 30  # Set a timeout of 5 minutes
+            timeout = 300  # Set a timeout of 5 minutes
             elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])
             if schedule is not None:
                 weeks = len(schedule[0])
