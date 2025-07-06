@@ -111,10 +111,11 @@ def get_shark_opt_solution(n, result):
 
     return solution
 
-def solve_cp(n: int, model: str, solver:str, timeout: int = 300, seed: int = 81):
+def solve_cp(n: int, model: str, solver:str, search_params : dict = {} , timeout: int = 300, seed: int = 81):
 
     # Create a model instance
     model_path = os.path.join("models", model) 
+    #print(model_path)
     model_instance = Model(model_path)
     
     # Create a solver instance
@@ -125,6 +126,11 @@ def solve_cp(n: int, model: str, solver:str, timeout: int = 300, seed: int = 81)
 
     # Add the input parameter n
     instance["n"] = n
+
+    # Add search strategies parameters if needed
+    if search_params:
+        for key, value in search_params.items():
+            instance[key] = value
 
     # Set a time limit for solving
     timelimit = timedelta(seconds=timeout)
@@ -159,63 +165,184 @@ def solve_cp(n: int, model: str, solver:str, timeout: int = 300, seed: int = 81)
     
     return timeout, False, None, None
 
-def produce_json(n_values:list, folder:str = "../../res/CP/"):
+def write_json(model_name: str,
+               solver: str,
+               n: int,
+               time: float,
+               optimal: bool,
+               obj: int,
+               sol: list,
+               folder: str = "../../res/CP/"):
+    # Save the solution to a JSON file
+    key = f"{model_name}_{solver}"
+    data = {
+        key: {
+            'time': floor(time),
+            'optimal': optimal,
+            'obj': int(obj) if obj is not None else None,
+            'sol': sol
+        }
+    }
+    filename = f"{folder}{n}.json"
+    # If file exists, load and update, else create new
+    try:
+        with open(filename, 'r') as f:
+            existing = json.load(f)
+    except FileNotFoundError:
+        existing = {}
+    existing.update(data)
+    with open(filename, 'w') as f:
+        json.dump(existing, f, indent=4)
+
+def produce_json(n_values:list, 
+                 solvers:list, 
+                 models:list, 
+                 gecode_models:list,
+                 luby_values:list = [0],
+                 rr_percentages:list = [0],
+                 folder:str = "../../res/CP/"):
 
     errors = 0
 
     for n in n_values:
-        for model in models:
-            for solver in solvers:
-                time, optimal, obj, sol = solve_cp(n=n, model=model, solver=solver, timeout=300)
 
-                if sol:
+        print(f"\n\n --- N={n} ---\n")
 
-                    check = check_solution(sol)
+        for solver in solvers:
 
-                    if check == 'Valid solution':
-                    
-                        # Save the solution to a JSON file
-                        key = f"{model.split('.')[0]}_{solver}"
-                        data = {
-                            key: {
-                                'time': floor(time),
-                                'optimal': optimal,
-                                'obj': int(obj) if obj is not None else None,
-                                'sol': sol
-                            }
-                        }
-                        filename = f"{folder}{n}.json"
-                        # If file exists, load and update, else create new
-                        try:
-                            with open(filename, 'r') as f:
-                                existing = json.load(f)
-                        except FileNotFoundError:
-                            existing = {}
-                        existing.update(data)
-                        with open(filename, 'w') as f:
-                            json.dump(existing, f, indent=4)
-                    
-                    else:
-                        print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
-                        errors += 1
+            if solver == 'gecode':
+                models_to_use = models + gecode_models
+            else:
+                models_to_use = models
+
+            for model in models_to_use:
+
+                search_params = {}
+                
+                # Model name
+                starting_model_name = model.split('.')[0]
+
+                if 'luby' in model:
+
+                    for luby_value in luby_values:
+
+                        search_params = {'luby_value': luby_value}
+                        # Update the model name
+                        model_name = starting_model_name.split("luby")[0] + "luby" + str(luby_value) + starting_model_name.split("luby")[1]
+
+                        # Solve the CP problem
+                        print(f"\tSolving {model_name}, solver={solver}, luby_value={luby_value}...\n")
+                        time, optimal, obj, sol = solve_cp(n=n, model=model, solver=solver, timeout=300, search_params=search_params)
+
+
+                        if sol:
+
+                            check = check_solution(sol, obj, time, optimal)
+
+                            if check == 'Valid solution':
+                            
+                                # Save the solution to a JSON file
+                                write_json(model_name=model_name,
+                                           solver=solver,
+                                           n=n,
+                                           time=time,
+                                           optimal=optimal,
+                                           obj=obj,
+                                           sol=sol,
+                                           folder=folder)
+                            
+                            else:
+                                print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
+                                errors += 1
+
+                elif 'rr' in model:
+
+                    for rr_percentage in rr_percentages:
+
+                        search_params = {'rr_percentage': rr_percentage}
+                        # Update the model name
+                        model_name = starting_model_name.split("rr")[0] + "rr" + str(rr_percentage) + starting_model_name.split("rr")[1]
+
+                        # Solve the CP problem
+                        print(f"\tSolving {model_name}, solver={solver}, rr_percentage={rr_percentage}...\n")
+                        time, optimal, obj, sol = solve_cp(n=n, model=model, solver=solver, timeout=300, search_params=search_params)
+
+                        if sol:
+
+                            check = check_solution(sol, obj, time, optimal)
+
+                            if check == 'Valid solution':
+                            
+                                # Save the solution to a JSON file
+                                write_json(model_name=model_name,
+                                           solver=solver,
+                                           n=n,
+                                           time=time,
+                                           optimal=optimal,
+                                           obj=obj,
+                                           sol=sol,
+                                           folder=folder)
+                            
+                            else:
+                                print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
+                                errors += 1
+
+                else:
+
+                    model_name = starting_model_name
+
+                    # Solve the CP problem
+                    print(f"\tSolving {model_name}, solver={solver}...\n")
+                    time, optimal, obj, sol = solve_cp(n=n, model=model, solver=solver, timeout=300)
+
+                    if sol:
+
+                        check = check_solution(sol, obj, time, optimal)
+
+                        if check == 'Valid solution':
+                            
+                            # Save the solution to a JSON file
+                            write_json(model_name=model_name,
+                                       solver=solver,
+                                       n=n,
+                                       time=time,
+                                       optimal=optimal,
+                                       obj=obj,
+                                       sol=sol,
+                                       folder=folder)
+                        
+                        else:
+                            print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
+                            errors += 1
+
     if errors > 0:
         print(f"\nTotal errors: {errors}\n")
     else:
         print("\nAll solutions are valid!\n")
 
-
-
 # ---------------------------------- SOLVERS -----------------------------------
 solvers = [
     'gecode',
-    #'chuffed'
+    'chuffed'
     ]
 
 # ---------------------------------- MODELS ----------------------------------
 
 models = [
+    #"monkey_opt.mzn",
+    #"monkey_opt_impl.mzn",
+    #"monkey_opt_impl_sym.mzn",
+    "monkey_opt_impl_sym_ff.mzn",
+]
+
+gecode_models = [
+    #"monkey_opt_impl_sym_dwd_luby.mzn",   
+    "monkey_opt_impl_sym_ff_rr.mzn",
+]
+
+test_models = [
     #"monkey.mzn",
-    "monkey_sym.mzn",
+    #"monkey_sym.mzn",
     #"monkey_opt.mzn",
     #"monkey_opt_sym.mzn",
     #"shark.mzn",
@@ -226,37 +353,103 @@ models = [
     #"shark_opt_sym_search_inp_rand_luby_rr.mzn",
 ]
 
-# ---------------------------------- INSTANCES ----------------------------------
+# -------------------------- SEARCH STRATEGIES PARAMS --------------------------
 
-n_values = range(6, 12, 2)
+luby_values = [25, 50, 100, 200]
 
-# ---------------------------------- SEED ------------------------------------
+rr_percentages = [
+    #10, 
+    #15, 
+    #50, 
+    #85, 
+    95
+]
+
+# ---------------------------------- INSTANCES ---------------------------------
+
+n_values = range(18, 20, 2)
+
+# ----------------------------------- SEED -------------------------------------
 
 seed = 81
 
-# ---------------------------------- MAIN  -----------------------------------
+# ----------------------------------- MAIN  ------------------------------------
 
 def main():
     
     # --- TESTING solve_cp ---
-    
-    for n in n_values:
-        for m in models:
-            for s in solvers:
-                time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed)
 
-                print(f"--------- n = {n} - {m} - {s} ----------")
-                print()
-                if sol:
-                    print("Solution:", sol)
-                    print("Time:", time)
-                    print("Obj:", obj)
-                    print("Optimal:", optimal)
-                    print(check_solution(sol))
-                print()
+    for seed_guess in range(30,70):
+        for n in n_values:
+            for s in solvers:
+
+                if s == 'gecode':
+                    models_to_use = models + gecode_models
+                else:
+                    models_to_use = models
+
+
+                for m in models_to_use:
+
+                    
+                    if 'luby' in m:
+                        for luby_value in luby_values:
+
+                            search_params = {'luby_value': luby_value}
+
+                            time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
+
+                            print(f"--------- n = {n} with seed {seed_guess} - {m.split("luby")[0]+"luby"+str(luby_value)+m.split("luby")[1]} - {s} ----------")
+                            print()
+                            if sol:
+                                print("Solution:", sol)
+                                print("Time:", time)
+                                print("Obj:", obj)
+                                print("Optimal:", optimal)
+                                print(check_solution(sol,obj, time, optimal))
+                            print()
+                    
+                    elif 'rr' in m:
+                        for rr_percentage in rr_percentages:
+
+                            search_params = {'rr_percentage': rr_percentage}
+
+                            time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
+
+                            print(f"--------- n = {n} with seed {seed_guess} - {m.split("rr")[0]+"rr"+str(rr_percentage)+m.split("rr")[1]} - {s} ----------")
+                            print()
+                            if sol:
+                                print("Solution:", sol)
+                                print("Time:", time)
+                                print("Obj:", obj)
+                                print("Optimal:", optimal)
+                                print(check_solution(sol,obj, time, optimal))
+                            print()
+                    
+                    else:
+                        time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess)
+
+                        print(f"--------- n = {n} with seed {seed_guess} - {m} - {s} ----------")
+                        print()
+                        if sol:
+                            print("Solution:", sol)
+                            print("Time:", time)
+                            print("Obj:", obj)
+                            print("Optimal:", optimal)
+                            print(check_solution(sol,obj, time, optimal))
+                        print()
+
+
+                
 
     # --- TESTING produce_json ---
-    #produce_json(n_values)
+    # produce_json(n_values, 
+    #              solvers, 
+    #              models, 
+    #              gecode_models,
+    #              luby_values=luby_values,
+    #              rr_percentages=rr_percentages,
+    #              folder="../../res/CP/")
     
 
 
