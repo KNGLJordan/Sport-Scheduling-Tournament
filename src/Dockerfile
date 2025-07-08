@@ -2,6 +2,13 @@ FROM python:3.12-slim
 
 # Set working dir
 WORKDIR /cdmo
+
+# Copy requirements first and install dependencies (cached if requirements.txt doesn't change)
+COPY requirements.txt .
+RUN python3 -m pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy the rest of the code
 COPY . ./src
 RUN mkdir res
 
@@ -12,10 +19,6 @@ RUN apt update && apt install -y \
     libfontconfig1 \
     dos2unix \
  && apt clean
-
-# Install Python packages
-RUN python3 -m pip install --upgrade pip && \
-    pip install amplpy pymzn matplotlib pandas z3-solver minizinc pymzn
 
 # Install Minizinc
 RUN apt install -y libglu1-mesa-dev libegl1
@@ -37,8 +40,8 @@ RUN apt-get update && apt-get install -y tree && apt-get clean
 RUN tree -L 3
 
 # Fix line endings for entrypoint (in case from Windows)
-RUN dos2unix ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+RUN dos2unix ./src/entrypoint.sh
+RUN chmod +x ./src/entrypoint.sh
 
 # Entry point
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["./src/entrypoint.sh"]

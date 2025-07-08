@@ -24,15 +24,12 @@ run_cp() {
 run_sat() {
     echo "== Running SAT Solver =="
     cd src/SAT
-    if [ -n "$MODEL_NAME" ]; then
-        if [ -n "$INITIAL_N" ] && [ -n "$FINAL_N" ]; then
-            python3 main_sat_solver.py --initial_n "$INITIAL_N" --final_n "$FINAL_N" 
-        else
-            python3 main_sat_solver.py --initial_n "$INITIAL_N" --final_n "$FINAL_N" --modelname "$MODEL_NAME"
-        fi
-    else
-        python3 main_sat_solver.py
-    fi
+    CMD="python3 main_sat_solver.py"
+    [ -n "$INITIAL_N" ] && CMD="$CMD --initial_n $INITIAL_N"
+    [ -n "$FINAL_N" ] && CMD="$CMD --final_n $FINAL_N"
+    [ -n "$MODEL_NAME" ] && CMD="$CMD --modelname $MODEL_NAME"
+    echo "Running: $CMD"
+    eval $CMD
     cd -
 }
 

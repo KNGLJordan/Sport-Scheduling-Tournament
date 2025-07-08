@@ -1,0 +1,6 @@
+amplpy
+pymzn
+matplotlib
+pandas
+z3-solver
+minizinc
