@@ -8,6 +8,8 @@ from models.sat_model_z3_binarysearch import sports_scheduling_sat
 from models.sat_model_z3_thread_new_faster import sports_scheduling_sat as sports_scheduling_sat_goat
 from models.sat_model_z3_binarysearch_new import sports_scheduling_sat as sports_scheduling_sat_new
 import sys
+import argparse
+
 
 use_multiprocess= 1
 use_new_optimization_function = 1
@@ -73,21 +75,23 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
     with open(filename, "w") as f:
         json.dump(existing, f, indent=4)
 
+
 def main():
-    """ Usage: python main_sat_solver.py [n_start] [n_end] [optimize] [model_name]
-           If optimize=False: just solve the decision problem (imbalance is not minimized, just check feasibility).
-           If optimize=True: do the search for minimum imbalance.
-          Set the optimal output as:
-            For decision: True if a solution is found, else False.
-            For optimization: True if best_imbalance == 0 and not timeout, else False.  
-          Set the objective output as:
-            For decision: None.
-            For optimization: best_imbalance found."""
+    parser = argparse.ArgumentParser(description="Run SAT sports scheduling models.")
+    parser.add_argument('--initial_n', type=int, default=2, help='Initial number of teams (even)')
+    parser.add_argument('--final_n', type=int, default=16, help='Final number of teams (even, exclusive)')
+    parser.add_argument('--modelname', type=str, default=None, help='Model name: heule, sequential, naive, binary')
+    parser.add_argument('--optimize', action='store_true', default=True, help='Enable optimization (default: True)')
+    parser.add_argument('--save_result', action='store_true', default=True, help='Save results to JSON files (default: True)')
+    args = parser.parse_args()
 
-    n_start = int(sys.argv[1]) if len(sys.argv) > 1 else 2
-    n_end = int(sys.argv[2]) if len(sys.argv) > 2 else 16
+    n_start = args.initial_n
+    n_end = args.final_n
+    selected_model = args.modelname.lower() if args.modelname else None
+    optimize = args.optimize
+    save_result = args.save_result
+    ns = list(range(n_start, n_end, 2))
 
-    # Map user-friendly names to model keys
     model_name_map = {
         "heule": "sat_z3_binsearch_heule",
         "sequential": "sat_z3_binsearch_seq",
@@ -95,14 +99,6 @@ def main():
         "binary": "sat_z3_binseach_bw",
     }
 
-    # Accept model name as optional 3rd argument
-    selected_model = sys.argv[3].lower() if len(sys.argv) > 3 else None
-
-    optimize = True
-    save_res = False
-    ns = list(range(n_start, n_end, 2))
-
-    # Determine which models to use
     if selected_model and selected_model in model_name_map:
         models_to_run = {model_name_map[selected_model]: models[model_name_map[selected_model]]}
     else:
@@ -111,8 +107,8 @@ def main():
     for n in ns:
         for model_name, model_func in models_to_run.items():
             print(f"SOLVING N={n} WITH MODEL={model_name} (OPTIMIZE={optimize})")
-            timeout = 300  # Set a timeout of 5 minutes
-            elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])
+            timeout = 300
+            elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding=model_func[1])
             if schedule is not None:
                 weeks = len(schedule[0])
                 print("        ", end="")
@@ -125,8 +121,6 @@ def main():
                         print(f"{game[0]} v {game[1]}".center(10), end="")
                     print()
                 print(f"\nExecution time: {elapsed:.2f} seconds")
-
-                #we print for every team the number of home and away games
                 for t in range(n):
                     home_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][0] == t + 1)
                     away_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][1] == t + 1)
