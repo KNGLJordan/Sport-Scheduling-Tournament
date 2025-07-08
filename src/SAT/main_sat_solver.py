@@ -36,13 +36,16 @@ models = {
 def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
     elapsed, optimal, obj, schedule = result
 
+    # Ensure obj is the string 'None' if it is None
+    obj_to_save = str(obj) if obj is None else obj
+
     if schedule is None:
         print(f"\t[!] No solution for n={n}, model={model_name}. Time: {elapsed:.2f} seconds")
         data = {
             model_name: {
                 "time": min(floor(elapsed), timeout),
                 "optimal": False,
-                "obj": None,
+                "obj": 'None',
                 "sol": []
             }
         }
@@ -56,14 +59,13 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
             model_name: {
                 "time": min(floor(elapsed), timeout),
                 "optimal": bool(optimal) if optimal is not None else False,
-                "obj": int(obj) if obj is not None else None,
+                "obj": obj_to_save,
                 "sol": schedule
             }
         }
 
     os.makedirs(folder, exist_ok=True)
     filename = os.path.join(folder, f"{n}.json")
-
 
     try:
         with open(filename, "r") as f:
@@ -132,7 +134,7 @@ def main():
             if(save_res and optimize):
                 save_result(n, model_name, (elapsed, optimal, obj, schedule), timeout=timeout)
             if (save_res and not optimize):
-                save_result(n, model_name, (elapsed, optimal, None, schedule), timeout=timeout)
+                save_result(n, model_name, (elapsed, optimal, 'None', schedule), timeout=timeout)
         print("\n" + "=" * 80 + "\n")
     print("All models completed.")
     if save_res:
