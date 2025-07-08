@@ -1,5 +1,6 @@
 from amplpy import AMPL
 from ampl_utils import solve_mip
+import os
 
 # ----------------------------- GLOBAL SETTINGS ------------------------------
 
@@ -52,6 +53,7 @@ solver_keys = [
 ]
 
 # ------------------------------- MODELS ----------------------------------
+models_folder = 'models/'
 
 models = [
     #'shark_mip_noHAmat.mod',
@@ -59,7 +61,8 @@ models = [
     #'shark_mip.mod',
     #'shark_mip_opt.mod',
     # 'shark_mip_opt_2.mod',
-    'shark_mip_opt_3.mod',
+    # 'shark_mip_opt_3.mod',
+    'shark_mip_opt_3_imp.mod',
     # 'monkey_mip_opt.mod',
 ]
 
@@ -120,26 +123,26 @@ def print_solutions(model_filename: str,
 def main():
 
     for m in models:
-        print(f"\n=== Solving model: {m} ===")
-        print_solutions(
-            model_filename=m,
-            n_values=range(6, 18, 2),  # example n_values range; adjust as you like
-            print_solution=True,
-            time_limit=300
-        )
+        # print(f"\n=== Solving model: {m} ===")
+        # print_solutions(
+        #     model_filename=m,
+        #     n_values=range(6, 18, 2),  # example n_values range; adjust as you like
+        #     print_solution=True,
+        #     time_limit=300
+        # )
 
-        # for seed in range(140,230):
-        #     print(f"\n=== Solving model: {m} with seed {seed} ===")
-        #     print()
-        #     # example n_values range; adjust as you like
-        #     print_solutions(
-        #         model_filename=m,
-        #         n_values=range(16, 18, 2),
-        #         print_solution=False,
-        #         seed=seed,
-        #         time_limit=300,
-        #         save_results=True,
-        #     )
+        for seed in range(30,70):
+            print(f"\n=== Solving model: {m} with seed {seed} ===")
+            print()
+            # example n_values range; adjust as you like
+            print_solutions(
+                model_filename=os.path.join(models_folder, m),
+                n_values=range(16, 18, 2),
+                print_solution=False,
+                seed=seed,
+                time_limit=300,
+                save_results=True,
+            )
 
 if __name__ == '__main__':
     main()

@@ -160,14 +160,13 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
 
         # Binary search over possible even objective indexes
         while start <= end:
-            mid_index = (start + end) // 2
-            mid = objective_values[mid_index]
+            mid = (start + end) // 2
+            mid_value = objective_values[mid]
             # Ensure we only test even objective values
             
-            # FOERSE INUTILE
-            """ if mid_value < min_obj:
+            if mid < min_obj:
                 min_obj = mid + 2
-                continue """
+                continue
 
             print(f"\nTrying objective value: {mid}")
 
@@ -177,14 +176,9 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
             temp_min = float('inf')
             for max_imb in odd_imbalances:
                 for min_imb in odd_imbalances:
-                    if max_imb >= 0 and min_imb <= 0 and max_imb - min_imb - 2 == mid and max_imb == - min_imb:
-                        # temp_max = max(temp_max, max_imb)
-                        # temp_min = min(temp_min, min_imb)
-                        temp_max = max_imb
-                        temp_min = min_imb
-                        break
-                if max_imb >= 0 and min_imb <= 0 and max_imb - min_imb - 2 == mid and max_imb == - min_imb:
-                    break
+                    if max_imb >= 0 and min_imb <= 0 and max_imb - min_imb - 2 == mid:
+                        temp_max = max(temp_max, max_imb)
+                        temp_min = min(temp_min, min_imb)
 
         #for n=6, when mid=4, an example of possible_pairs would be:
         # 3 - (-3) - 2
@@ -203,20 +197,19 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                         min_away = i """
 
           #  print(f"  Possible pairs found: max_imb={temp_max}, min_imb={temp_min}")
-            print(f"  Max_home= {max_home}, Min_home={min_home}")
-
+           # print(f"  Max_home= {max_home}, Min_home={min_home}")
 
             first_iteration = False
             if min_home==0 and max_home==n-1:
                 #instead of optimising with implied extra constraints, we do the decision problem
                 first_iteration = True
             if first_iteration:
-                print("  Building the solver in the case where optimization is trivial, and instead therefore we use the decision problem...")
+                #print("  Building the solver in the case where optimization is trivial, and instead therefore we use the decision problem...")
                 time_before = time.time()
                 decision_problem_feasible()
                 time_after = time.time()
                 #print(f"  Decision problem check completed in {time_after - time_before:.2f} seconds")
-                end = mid_index -1
+                max_obj = mid -2
 
             else:
                 # Build and check the solver
@@ -237,11 +230,11 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                     best_obj = mid
                     best_sched = extract_schedule(best_model, home, away, teams, weeks, periods)
 
-                    end = mid_index -1 # !!!
+                    max_obj = mid - 2
             
                 else:
                     #print("  No solution found, trying higher objective")
-                    start = mid_index + 1
+                    min_obj = mid + 2
 
         elapsed = time.time() - start_time
         if best_model is None:

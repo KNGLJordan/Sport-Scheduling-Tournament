@@ -18,6 +18,15 @@ run_cp() {
     cd -
 }
 
+check_cp() {
+    echo "== Checking CP Solver =="
+    cd src
+    CMD="python3 solution_checker.py ../res/CP"
+    echo "Running: $CMD"
+    eval $CMD
+    cd -
+}
+
 run_sat() {
     echo "== Running SAT Solver =="
     cd src/SAT
@@ -30,10 +39,19 @@ run_sat() {
     cd -
 }
 
+check_sat() {
+    echo "== Checking SAT Solver =="
+    cd src
+    CMD="python3 solution_checker.py ../res/SAT"
+    echo "Running: $CMD"
+    eval $CMD
+    cd -
+}
+
 run_mip() {
     echo "== Running MIP Solver =="
     cd src/MIP
-    CMD="python3 generate_ampl_solutions.py"
+    CMD="python3 solver.py"
     [ -n "$INITIAL_N" ] && CMD="$CMD --initial_n $INITIAL_N"
     [ -n "$FINAL_N" ] && CMD="$CMD --final_n $FINAL_N"
     [ -n "$MODEL_NAME" ] && CMD="$CMD --modelname $MODEL_NAME"
@@ -42,13 +60,25 @@ run_mip() {
     cd -
 }
 
+check_mip() {
+    echo "== Checking MIP Solver =="
+    cd src
+    CMD="python3 solution_checker.py ../res/MIP"
+    echo "Running: $CMD"
+    eval $CMD
+    cd -
+}
+
 # Se MODE è vuoto → esegui tutti i solver
 if [ -z "$MODE" ]; then
     run_cp
+    check_cp
     run_sat
+    check_sat
     run_mip
+    check_mip
 else
-    [[ "$MODE" == "CP" ]] && run_cp
-    [[ "$MODE" == "SAT" ]] && run_sat
-    [[ "$MODE" == "MIP" ]] && run_mip
+    [[ "$MODE" == "CP" ]] && run_cp && check_cp
+    [[ "$MODE" == "SAT" ]] && run_sat && check_sat
+    [[ "$MODE" == "MIP" ]] && run_mip && check_mip
 fi

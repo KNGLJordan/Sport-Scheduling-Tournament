@@ -130,11 +130,11 @@ def main(n_start, n_end, selected_model, optimize, save_res):
                 save_result(n, model_name, (elapsed, optimal, obj, schedule), timeout=timeout)
             if (save_res and not optimize):
                 save_result(n, model_name, (elapsed, optimal, 'None', schedule), timeout=timeout)
-        print("\n" + "=" * 80 + "\n")
+        #print("\n" + "=" * 80 + "\n")
     print("All models completed.")
-    if save_res:
-        print(f"Results saved in {os.path.abspath('../../res/SAT/')}")
-        print("You can check the results in the corresponding JSON files.")
+    #if save_res:
+        #print(f"Results saved in {os.path.abspath('../../res/SAT/')}")
+        #print("You can check the results in the corresponding JSON files.")
 
 if __name__ == "__main__":
 

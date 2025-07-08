@@ -350,7 +350,6 @@ def solve_mip(ampl: AMPL,
         sol = None
     
     if not all(sol):
-        print(sol)
         sol = None
         print("No solution found or solution is empty.")
 
