@@ -4,7 +4,7 @@ FROM python:3.12-slim
 WORKDIR /cdmo
 
 # Copy requirements first and install dependencies (cached if requirements.txt doesn't change)
-COPY requirements.txt .
+COPY requirements.txt solution_checker.py setup.py ./
 RUN python3 -m pip install --upgrade pip && \
     pip install -r requirements.txt
 

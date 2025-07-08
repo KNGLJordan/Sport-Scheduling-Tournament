@@ -21,8 +21,8 @@ solver_dict = {
     'cbc': {
         'solver': 'cbc',
         'option_key': 'cbc_options',
-        'seed_param': 'seed=',
-        'time_param': 'seconds=',
+        'seed_param': 'randomCbcSeed=',
+        'time_param': 'timelimit=',
     },
     'cplex': {
         'solver': 'cplex',
@@ -34,7 +34,7 @@ solver_dict = {
         'solver': 'highs',
         'option_key': 'highs_options',
         'seed_param': 'random_seed=',
-        'time_param': 'time_limit=',
+        'time_param': 'timelimit=',
     }
 }
 
@@ -75,7 +75,7 @@ def write_json(model_name:str,
         key: {
             'time': floor(time),
             'optimal': optimal,
-            'obj': int(obj) if obj is not None else None,
+            'obj': int(obj) if obj is not None else "None",
             'sol': sol if sol else []
         }
     }

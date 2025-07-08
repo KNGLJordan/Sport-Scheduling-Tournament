@@ -186,8 +186,10 @@ def write_json(model_name: str,
             'sol': sol if sol else []
         }
     }
-    filename = f"{folder}{n}.json"
+    
     # If file exists, load and update, else create new
+    filename = os.path.join(os.getcwd(), f"{folder}{n}.json")
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     try:
         with open(filename, 'r') as f:
             existing = json.load(f)

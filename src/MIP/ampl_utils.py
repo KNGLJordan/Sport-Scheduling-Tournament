@@ -305,6 +305,10 @@ def solve_mip(ampl: AMPL,
     # Stop time
     elapsed = time.time() - start_time
 
+    # Status
+    objective = round(ampl.getObjective(objective).value())
+    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (objective <= 0) : 
+        return elapsed, False, None, None
     # Print time
     # print(f"n = {n}: {elapsed:.3f} sec.")
 
@@ -346,6 +350,7 @@ def solve_mip(ampl: AMPL,
         sol = None
     
     if not all(sol):
+        print(sol)
         sol = None
         print("No solution found or solution is empty.")
 
