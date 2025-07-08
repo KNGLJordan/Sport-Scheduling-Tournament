@@ -9,15 +9,12 @@ MODEL_NAME=$4 # opzionale
 run_cp() {
     echo "== Running CP Solver =="
     cd src/CP
-    if [ -n "$MODEL_NAME" ]; then
-        if [ -n "$INITIAL_N" ] && [ -n "$FINAL_N" ]; then
-            python3 solver.py --initial_n "$INITIAL_N" --final_n "$FINAL_N"
-        else
-            python3 solver.py --initial_n "$INITIAL_N" --final_n "$FINAL_N" --modelname "$MODEL_NAME"
-        fi
-    else
-        python3 solver.py
-    fi
+    CMD="python3 solver.py"
+    [ -n "$INITIAL_N" ] && CMD="$CMD --initial_n $INITIAL_N"
+    [ -n "$FINAL_N" ] && CMD="$CMD --final_n $FINAL_N"
+    [ -n "$MODEL_NAME" ] && CMD="$CMD --modelname $MODEL_NAME"
+    echo "Running: $CMD"
+    eval $CMD
     cd -
 }
 
@@ -36,15 +33,12 @@ run_sat() {
 run_mip() {
     echo "== Running MIP Solver =="
     cd src/MIP
-    if [ -n "$MODEL_NAME" ]; then
-        if [ -n "$INITIAL_N" ] && [ -n "$FINAL_N" ]; then
-            python3 generate_ampl_solutions.py --initial_n "$INITIAL_N" --final_n "$FINAL_N"
-        else
-            python3 generate_ampl_solutions.py --initial_n "$INITIAL_N" --final_n "$FINAL_N" --modelname "$MODEL_NAME"
-        fi
-    else
-        python3 generate_ampl_solutions.py
-    fi
+    CMD="python3 generate_ampl_solutions.py"
+    [ -n "$INITIAL_N" ] && CMD="$CMD --initial_n $INITIAL_N"
+    [ -n "$FINAL_N" ] && CMD="$CMD --final_n $FINAL_N"
+    [ -n "$MODEL_NAME" ] && CMD="$CMD --modelname $MODEL_NAME"
+    echo "Running: $CMD"
+    eval $CMD
     cd -
 }
 
