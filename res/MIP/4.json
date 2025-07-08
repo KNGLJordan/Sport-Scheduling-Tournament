@@ -1,0 +1,38 @@
+{
+    "shark_mip_opt_3_gurobi": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_gurobi": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "shark_mip_opt_3_cbc": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_cbc": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "shark_mip_opt_3_cplex": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_cplex": {
+        "time": 0,
+        "optimal": false,
+        "obj": null,
+        "sol": []
+    }
+}

@@ -1,6 +1,6 @@
 {
     "shark_mip_noHAmat_gurobi": {
-        "time": 13,
+        "time": 15,
         "optimal": true,
         "obj": null,
         "sol": [
@@ -1698,9 +1698,9 @@
         ]
     },
     "shark_mip_opt_gurobi": {
-        "time": 11,
+        "time": 12,
         "optimal": true,
-        "obj": 0,
+        "obj": 12,
         "sol": [
             [
                 [
@@ -1981,7 +1981,7 @@
         ]
     },
     "shark_mip_opt_cplex": {
-        "time": 64,
+        "time": 81,
         "optimal": true,
         "obj": 0,
         "sol": [

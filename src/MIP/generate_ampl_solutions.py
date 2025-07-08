@@ -3,6 +3,11 @@ from solution_checker import check_solution
 import json
 from math import floor
 from ampl_utils import solve_mip
+import argparse
+import os
+
+TIME_LIMIT = 300
+SEED = 81
 
 # ------------------------------- SOLVERS -----------------------------------------
 
@@ -10,22 +15,26 @@ solver_dict = {
     'gurobi': {
         'solver': 'gurobi',
         'option_key': 'gurobi_options',
-        'option_value': 'timelimit=',
+        'seed_param': 'seed=',
+        'time_param': 'timelimit=',
     },
     'cbc': {
         'solver': 'cbc',
         'option_key': 'cbc_options',
-        'option_value': 'seconds=',
+        'seed_param': 'seed=',
+        'time_param': 'seconds=',
     },
     'cplex': {
         'solver': 'cplex',
         'option_key': 'cplex_options',
-        'option_value': 'timelimit=',
+        'seed_param': 'seed=',
+        'time_param': 'timelimit=',
     },
     'highs': {
         'solver': 'highs',
         'option_key': 'highs_options',
-        'option_value': 'time_limit=',
+        'seed_param': 'random_seed=',
+        'time_param': 'time_limit=',
     }
 }
 
@@ -40,68 +49,116 @@ solver_keys = [
 models_folder = 'models/'
 
 models = [
-    'shark_mip_noHAmat.mod',
-    'shark_mip.mod',
-    'shark_mip_opt.mod',
-    'shark_mip_opt_2.mod',
-    'monkey_mip.mod',
-    'monkey_mip_opt.mod',
+    # 'shark_mip_noHAmat.mod',
+    # 'shark_mip.mod',
+    # 'shark_mip_opt.mod',
+    # 'shark_mip_opt_2.mod',
+    'shark_mip_opt_3.mod',
+    'shark_mip_opt_3_imp.mod',
+    # 'monkey_mip.mod',
+    # 'monkey_mip_opt.mod',
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
 
-def produce_json(n_values:list, folder:str = "../../res/MIP/"):
+def write_json(model_name:str,
+               solver:str,
+               n:int,
+               time:float,
+               optimal:bool,
+               obj:float,
+               sol:dict,
+               folder:str = "../../res/MIP/"):
+    
+    key = f"{model_name.split('.')[0]}_{solver}"
+    data = {
+        key: {
+            'time': floor(time),
+            'optimal': optimal,
+            'obj': int(obj) if obj is not None else None,
+            'sol': sol if sol else []
+        }
+    }
+    # If file exists, load and update, else create new
+    filename = os.path.join(os.getcwd(), f"{folder}{n}.json")
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    try:
+        with open(filename, 'r') as f:
+            existing = json.load(f)
+    except FileNotFoundError:
+        existing = {}
+    existing.update(data)
+    with open(filename, 'w') as f:
+        json.dump(existing, f, indent=4)
+    
+
+def produce_json(n_values:list, 
+                 models:list,
+                 folder:str = "../../res/MIP/"):
 
      # Create AMPL instance
     ampl = AMPL()
 
     errors = 0
 
-    time_limit = 20  # seconds
-
     for n in n_values:
-        for model in models:
-            for s_key in solver_keys:
+
+        print(f'\n\n --- N={n} ---\n')
+
+        for s_key in solver_keys:
+
+            opt_str = (
+                f"{solver_dict[s_key]['seed_param']}{SEED} "
+            )
+            opt_str += f"{solver_dict[s_key]['time_param']}{TIME_LIMIT} "
+
+            for model in models:
+
+                print(f'\tSolving {model}, solver={s_key}...\n')
+
                 time, optimal, obj, sol = solve_mip(ampl=ampl,
-                                                    model_filename=models_folder+model, 
+                                                    model_filename=os.path.join(models_folder, model),
                                                     solver=solver_dict[s_key]['solver'],
                                                     n=n,
                                                     option_key=solver_dict[s_key]['option_key'],
-                                                    option_value=solver_dict[s_key]['option_value']+str(time_limit),
-                                                    time_limit=time_limit,
+                                                    option_value=opt_str,
+                                                    time_limit=TIME_LIMIT,
                                                     objective="Unbalance",
                                                     print_solution=False)
                 
                 if sol:
 
-                    check = check_solution(sol)
+                    check = check_solution(sol, obj, time, optimal)
 
                     if check == 'Valid solution':
                     
                         # Save the solution to a JSON file
-                        key = f"{model.split('.')[0]}_{s_key}"
-                        data = {
-                            key: {
-                                'time': floor(time),
-                                'optimal': optimal,
-                                'obj': int(obj) if obj is not None else None,
-                                'sol': sol
-                            }
-                        }
-                        filename = f"{folder}{n}.json"
-                        # If file exists, load and update, else create new
-                        try:
-                            with open(filename, 'r') as f:
-                                existing = json.load(f)
-                        except FileNotFoundError:
-                            existing = {}
-                        existing.update(data)
-                        with open(filename, 'w') as f:
-                            json.dump(existing, f, indent=4)
+                        write_json(model_name=model, 
+                                   solver=s_key, 
+                                   n=n,
+                                   time=time,
+                                   optimal=optimal,
+                                   obj=obj,
+                                   sol=sol,
+                                   folder=folder)
                     
                     else:
                         print(f"\n\t! Error with n={n}, model={model}, solver={s_key}: {check}\n")
                         errors += 1
+
+                else:
+
+                    # Save the empty solution to a JSON file
+                    write_json(model_name=model, 
+                                solver=s_key, 
+                                n=n,
+                                time=time,
+                                optimal=False,
+                                obj=None,
+                                sol=None,
+                                folder=folder)
+        
+        print(f'\tFinished solving for N={n}. Results in res/MIP/{n}.json\n')
 
     if errors > 0:
         print(f"\nTotal errors: {errors}\n")
@@ -111,10 +168,27 @@ def produce_json(n_values:list, folder:str = "../../res/MIP/"):
 
 # ---------------------------------- MAIN  -----------------------------------
 
-def main():
+def main(initial_n:int, final_n:int, model:str):
 
-    produce_json(n_values=list(range(6, 16, 2)))
+    n_values = range(initial_n, final_n + 1, 2)
+
+    if model != "":
+        if model in models:
+            main_models = [model]
+    else:
+        main_models = models
+
+    produce_json(n_values=n_values,
+                 models=main_models,
+                 folder="../../res/MIP/")
 
 
 if __name__ == '__main__':
-    main()
+
+    parser = argparse.ArgumentParser(description="Solve MIP models for given parameters.")
+    parser.add_argument('--initial_n', type=int, default=2, help='Initial value of n (even integer)')
+    parser.add_argument('--final_n', type=int, default=18, help='Final value of n (even integer)')
+    parser.add_argument('--modelname', type=str, default="", help='Model file name (optional)')
+    args = parser.parse_args()
+
+    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n)

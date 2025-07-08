@@ -145,7 +145,7 @@ var z_enc{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2} bin
 # encoding of the AND relation 
 
 # C1 /\ C2
-# becomes
+# becomes 
 # b1 <= b, b2 <= b, b1 + b2 <= b +1 
 
 subject to LinkZ1{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
@@ -161,3 +161,11 @@ subject to LinkZ3{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 <
 
 subject to AlldifferentPeriodsPerWeek{w in WeekVals, p in PeriodVals}:
     sum{t1 in Teams, t2 in Teams: t1 < t2} z_enc[t1,t2,w,p] <= 1;
+
+# -------------------- IMPLIED CONSTRAINTS --------------------------------------------------------
+
+subject to AllDifferentWeeksNoDiagImpl{t1 in Teams, w in WeekVals}:
+    sum{t2 in Teams: t2 != t1} w_enc[t2, t1, w] <= 1;
+
+subject to MaxTwoPeriodsImpl{t1 in Teams, p in PeriodVals}:
+    sum{t2 in Teams: t2 != t1} p_enc[t2, t1, p] <= 2;

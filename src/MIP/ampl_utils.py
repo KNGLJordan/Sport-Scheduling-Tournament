@@ -276,13 +276,15 @@ def solve_mip(ampl: AMPL,
     # Set silent options
     ampl.set_option("log_file", "")       
     ampl.set_option("display_options", 0) 
-    ampl.set_option("presolve", 0)
+    # ampl.set_option("presolve", 0)
     ampl.set_option("solver_msg", 0) 
     ampl.set_option("solver", solver)
 
     # Check for an option to be set (the time limit)
     if option_value != "":
         ampl.set_option(option_key, option_value)
+
+    # ampl.setOption("randseed", 33)
 
     # Read the model
     ampl.read(model_filename)
@@ -295,7 +297,7 @@ def solve_mip(ampl: AMPL,
 
     # Solve
     try:
-        ampl.solve()
+        ampl.solve(verbose=False)
     except KeyboardInterrupt:
         print("\n...interrupted!")
         return time_limit
@@ -304,14 +306,14 @@ def solve_mip(ampl: AMPL,
     elapsed = time.time() - start_time
 
     # Print time
-    print(f"n = {n}: {elapsed:.3f} sec.")
+    # print(f"n = {n}: {elapsed:.3f} sec.")
 
     # Check if the solution is model is optimized
     optimization = False
     objective_val = None
     try:
         objective_val = ampl.get_objective(objective).value()
-        print(f"{objective}: {objective_val}")
+        # print(f"{objective}: {objective_val}")
         optimization = True
     except Exception as e:
         print("No optimization.")
@@ -346,10 +348,6 @@ def solve_mip(ampl: AMPL,
     if not all(sol):
         sol = None
         print("No solution found or solution is empty.")
-
-    # Check solution
-    if sol:
-        print(check_solution(sol))
 
     # Print solution if required
     if sol and print_solution:
