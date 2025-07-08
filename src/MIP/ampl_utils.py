@@ -307,7 +307,7 @@ def solve_mip(ampl: AMPL,
 
     # Status
     objective = round(ampl.getObjective(objective).value())
-    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (objective <= 0) : 
+    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (objective < 0) : 
         return elapsed, False, None, None
     # Print time
     # print(f"n = {n}: {elapsed:.3f} sec.")
