@@ -7,7 +7,7 @@ import argparse
 import os
 
 TIME_LIMIT = 300
-SEED = 81
+SEED = 63
 
 # ------------------------------- SOLVERS -----------------------------------------
 

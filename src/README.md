@@ -33,7 +33,7 @@ To run a specific model approach ("CP", "SAT", "MIP") from a certain n value to 
 docker run -i cdmo <model-approach> <initial-n> <final-n>
 ```
 
-To run a specific model approach ("CP", "SAT", "MIP") from a certain n value to a another one (from 6 to 10) with a specifc model file ("monkey_opt.mzn"), run:
+To run a specific model approach ("CP", "SAT", "MIP") from a certain n value to a another one (from 6 to 10) with a specific model file ("monkey_opt.mzn"), run:
 ```
 docker run -i cdmo <model-approach> <initial-n> <final-n> <model-name>
 ```

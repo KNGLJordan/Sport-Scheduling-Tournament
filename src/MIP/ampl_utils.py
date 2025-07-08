@@ -305,10 +305,6 @@ def solve_mip(ampl: AMPL,
     # Stop time
     elapsed = time.time() - start_time
 
-    # Status
-    objective = round(ampl.getObjective(objective).value())
-    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (objective < 0) : 
-        return elapsed, False, None, None
     # Print time
     # print(f"n = {n}: {elapsed:.3f} sec.")
 
@@ -316,12 +312,14 @@ def solve_mip(ampl: AMPL,
     optimization = False
     objective_val = None
     try:
-        objective_val = ampl.get_objective(objective).value()
-        # print(f"{objective}: {objective_val}")
+        objective_val = round(ampl.get_objective(objective).value())
         optimization = True
     except Exception as e:
         print("No optimization.")
 
+    # Status
+    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (optimization and (objective_val < 0)):
+        return elapsed, False, None, None
 
     HM_mat_present = True
     try:
