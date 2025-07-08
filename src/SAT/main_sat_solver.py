@@ -135,7 +135,7 @@ def main():
                 save_result(n, model_name, (elapsed, optimal, None, schedule), timeout=timeout)
         print("\n" + "=" * 80 + "\n")
     print("All models completed.")
-    if save_res:
+    if save_result:
         print(f"Results saved in {os.path.abspath('../../res/SAT/')}")
         print("You can check the results in the corresponding JSON files.")
 
