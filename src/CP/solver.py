@@ -4,6 +4,7 @@ import json, os
 import time, math
 from math import floor
 from solution_checker import check_solution
+import argparse
 
 def get_monkey_solution(n, result):
 
@@ -143,8 +144,10 @@ def solve_cp(n: int, model: str, solver:str, search_params : dict = {} , timeout
     solve_time = math.floor(end_time - start_time)
 
     if result.status != result.status.UNKNOWN:
-        
-        if "monkey" in model and "opt" in model:
+
+        if result.status == result.status.UNSATISFIABLE:
+            sol = None
+        elif "monkey" in model and "opt" in model:
             sol = get_monkey_opt_solution(n, result)
         elif "shark" in model and "opt" in model:
             sol = get_shark_opt_solution(n, result)
@@ -179,8 +182,8 @@ def write_json(model_name: str,
         key: {
             'time': floor(time),
             'optimal': optimal,
-            'obj': int(obj) if obj is not None else None,
-            'sol': sol
+            'obj': int(obj) if obj is not None else "None",
+            'sol': sol if sol else []
         }
     }
     filename = f"{folder}{n}.json"
@@ -255,6 +258,19 @@ def produce_json(n_values:list,
                                 print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
                                 errors += 1
 
+                        else:
+
+                            # Save the empty solution to a JSON file
+                            write_json(model_name=model_name,
+                                        solver=solver,
+                                        n=n,
+                                        time=time,
+                                        optimal=False,
+                                        obj=None,
+                                        sol=None,
+                                        folder=folder)
+
+
                 elif 'rr' in model:
 
                     for rr_percentage in rr_percentages:
@@ -286,6 +302,18 @@ def produce_json(n_values:list,
                             else:
                                 print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
                                 errors += 1
+                            
+                        else:
+
+                            # Save the empty solution to a JSON file
+                            write_json(model_name=model_name,
+                                        solver=solver,
+                                        n=n,
+                                        time=time,
+                                        optimal=False,
+                                        obj=None,
+                                        sol=None,
+                                        folder=folder)
 
                 else:
 
@@ -314,6 +342,19 @@ def produce_json(n_values:list,
                         else:
                             print(f"\n\t! Error with n={n}, model={model}, solver={solver}: {check}\n")
                             errors += 1
+                        
+                    else:
+                        # Save the empty solution to a JSON file
+                        write_json(model_name=model_name,
+                                    solver=solver,
+                                    n=n,
+                                    time=time,
+                                    optimal=False,
+                                    obj=None,
+                                    sol=None,
+                                    folder=folder)
+                        
+        print(f"\tFinished solving for N={n}. Results in res/CP/{n}.json\n")
 
     if errors > 0:
         print(f"\nTotal errors: {errors}\n")
@@ -329,14 +370,14 @@ solvers = [
 # ---------------------------------- MODELS ----------------------------------
 
 models = [
-    #"monkey_opt.mzn",
-    #"monkey_opt_impl.mzn",
-    #"monkey_opt_impl_sym.mzn",
+    "monkey_opt.mzn",
+    "monkey_opt_impl.mzn",
+    "monkey_opt_impl_sym.mzn",
     "monkey_opt_impl_sym_ff.mzn",
 ]
 
 gecode_models = [
-    #"monkey_opt_impl_sym_dwd_luby.mzn",   
+    "monkey_opt_impl_sym_dwd_luby.mzn",   
     "monkey_opt_impl_sym_ff_rr.mzn",
 ]
 
@@ -355,19 +396,25 @@ test_models = [
 
 # -------------------------- SEARCH STRATEGIES PARAMS --------------------------
 
-luby_values = [25, 50, 100, 200]
+luby_values = [
+    25, 
+    50, 
+    100, 
+    200
+]
 
 rr_percentages = [
     #10, 
-    #15, 
-    #50, 
-    #85, 
-    95
+    15, 
+    50, 
+    85, 
+    95,
+    99
 ]
 
 # ---------------------------------- INSTANCES ---------------------------------
 
-n_values = range(18, 20, 2)
+n_values = range(6, 18, 2)
 
 # ----------------------------------- SEED -------------------------------------
 
@@ -375,83 +422,99 @@ seed = 81
 
 # ----------------------------------- MAIN  ------------------------------------
 
-def main():
+def main(initial_n:int, final_n:int, model:str):
+
+    n_values = range(initial_n, final_n+2, 2)
+
+    if model != "":
+        if model in gecode_models:
+            main_gecode_models = [model]
+            main_models = []
+        else:
+            main_gecode_models = []
+            main_models = [model]
+    else:
+        main_gecode_models = gecode_models
+        main_models = models
+        
+
+    # --- TESTING produce_json ---
+    produce_json(n_values, 
+                 solvers, 
+                 main_models, 
+                 main_gecode_models,
+                 luby_values=luby_values,
+                 rr_percentages=rr_percentages,
+                 folder="../../res/CP/")
     
     # --- TESTING solve_cp ---
 
-    for seed_guess in range(30,70):
-        for n in n_values:
-            for s in solvers:
+    # for seed_guess in range(30,70):
+    #     for n in n_values:
+    #         for s in solvers:
 
-                if s == 'gecode':
-                    models_to_use = models + gecode_models
-                else:
-                    models_to_use = models
+    #             if s == 'gecode':
+    #                 models_to_use = models + gecode_models
+    #             else:
+    #                 models_to_use = models
 
 
-                for m in models_to_use:
+    #             for m in models_to_use:
 
                     
-                    if 'luby' in m:
-                        for luby_value in luby_values:
+    #                 if 'luby' in m:
+    #                     for luby_value in luby_values:
 
-                            search_params = {'luby_value': luby_value}
+    #                         search_params = {'luby_value': luby_value}
 
-                            time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
+    #                         time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
 
-                            print(f"--------- n = {n} with seed {seed_guess} - {m.split("luby")[0]+"luby"+str(luby_value)+m.split("luby")[1]} - {s} ----------")
-                            print()
-                            if sol:
-                                print("Solution:", sol)
-                                print("Time:", time)
-                                print("Obj:", obj)
-                                print("Optimal:", optimal)
-                                print(check_solution(sol,obj, time, optimal))
-                            print()
+    #                         print(f"--------- n = {n} with seed {seed_guess} - {m.split("luby")[0]+"luby"+str(luby_value)+m.split("luby")[1]} - {s} ----------")
+    #                         print()
+    #                         if sol:
+    #                             print("Solution:", sol)
+    #                             print("Time:", time)
+    #                             print("Obj:", obj)
+    #                             print("Optimal:", optimal)
+    #                             print(check_solution(sol,obj, time, optimal))
+    #                         print()
                     
-                    elif 'rr' in m:
-                        for rr_percentage in rr_percentages:
+    #                 elif 'rr' in m:
+    #                     for rr_percentage in rr_percentages:
 
-                            search_params = {'rr_percentage': rr_percentage}
+    #                         search_params = {'rr_percentage': rr_percentage}
 
-                            time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
+    #                         time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess, search_params=search_params)
 
-                            print(f"--------- n = {n} with seed {seed_guess} - {m.split("rr")[0]+"rr"+str(rr_percentage)+m.split("rr")[1]} - {s} ----------")
-                            print()
-                            if sol:
-                                print("Solution:", sol)
-                                print("Time:", time)
-                                print("Obj:", obj)
-                                print("Optimal:", optimal)
-                                print(check_solution(sol,obj, time, optimal))
-                            print()
+    #                         print(f"--------- n = {n} with seed {seed_guess} - {m.split("rr")[0]+"rr"+str(rr_percentage)+m.split("rr")[1]} - {s} ----------")
+    #                         print()
+    #                         if sol:
+    #                             print("Solution:", sol)
+    #                             print("Time:", time)
+    #                             print("Obj:", obj)
+    #                             print("Optimal:", optimal)
+    #                             print(check_solution(sol,obj, time, optimal))
+    #                         print()
                     
-                    else:
-                        time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess)
+    #                 else:
+    #                     time, optimal, obj, sol = solve_cp(n=n, model=m, solver=s, timeout=300, seed=seed_guess)
 
-                        print(f"--------- n = {n} with seed {seed_guess} - {m} - {s} ----------")
-                        print()
-                        if sol:
-                            print("Solution:", sol)
-                            print("Time:", time)
-                            print("Obj:", obj)
-                            print("Optimal:", optimal)
-                            print(check_solution(sol,obj, time, optimal))
-                        print()
-
-
-                
-
-    # --- TESTING produce_json ---
-    # produce_json(n_values, 
-    #              solvers, 
-    #              models, 
-    #              gecode_models,
-    #              luby_values=luby_values,
-    #              rr_percentages=rr_percentages,
-    #              folder="../../res/CP/")
-    
-
+    #                     print(f"--------- n = {n} with seed {seed_guess} - {m} - {s} ----------")
+    #                     print()
+    #                     if sol:
+    #                         print("Solution:", sol)
+    #                         print("Time:", time)
+    #                         print("Obj:", obj)
+    #                         print("Optimal:", optimal)
+    #                         print(check_solution(sol,obj, time, optimal))
+    #                     print()
 
 if __name__ == '__main__':
-    main()
+
+    parser = argparse.ArgumentParser(description="Solve CP models for given parameters.")
+    parser.add_argument('--initial_n', type=int, default=2, help='Initial value of n (even integer)')
+    parser.add_argument('--final_n', type=int, default=18, help='Final value of n (even integer)')
+    parser.add_argument('--modelname', type=str, default="", help='Model file name (optional)')
+    args = parser.parse_args()
+
+    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n)

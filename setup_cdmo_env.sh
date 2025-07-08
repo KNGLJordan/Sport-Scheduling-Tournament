@@ -23,6 +23,9 @@ python -m amplpy.modules install cplex
 python3 -m pip install --no-cache-dir minizinc
 python3 -m pip install --no-cache-dir pymzn
 
+# === Install additional dependencies ===
+python3 -m pip install matplotlib pandas
+
 # === License activation ===
 echo
 echo "AMPL license not yet activated."
