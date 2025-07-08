@@ -381,7 +381,7 @@
         ]
     },
     "sat_z3_binseach_bw": {
-        "time": 7,
+        "time": 8,
         "optimal": true,
         "obj": 0,
         "sol": [
