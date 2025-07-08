@@ -146,7 +146,7 @@
         ]
     },
     "sat_z3_binsearch_np": {
-        "time": 4,
+        "time": 5,
         "optimal": true,
         "obj": 0,
         "sol": [
@@ -219,7 +219,7 @@
         ]
     },
     "sat_z3_binseach_bw": {
-        "time": 1,
+        "time": 2,
         "optimal": true,
         "obj": 0,
         "sol": [

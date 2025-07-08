@@ -78,20 +78,15 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
         json.dump(existing, f, indent=4)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run SAT sports scheduling models.")
-    parser.add_argument('--initial_n', type=int, default=2, help='Initial number of teams (even)')
-    parser.add_argument('--final_n', type=int, default=16, help='Final number of teams (even, exclusive)')
-    parser.add_argument('--modelname', type=str, default=None, help='Model name: heule, sequential, naive, binary')
-    parser.add_argument('--optimize', action='store_true', default=True, help='Enable optimization (default: True)')
-    parser.add_argument('--save_res', action='store_true', default=True, help='Save results to JSON files (default: True)')
-    args = parser.parse_args()
+def main(n_start, n_end, selected_model, optimize, save_res):
+   
 
-    n_start = args.initial_n
-    n_end = args.final_n
-    selected_model = args.modelname.lower() if args.modelname else None
-    optimize = args.optimize
-    save_res = args.save_res
+    # n_start = args.initial_n
+    # n_end = args.final_n
+    # selected_model = args.modelname.lower() if args.modelname else None
+    # optimize = args.optimize
+    # save_res = args.save_res
+
     ns = list(range(n_start, n_end, 2))
 
     model_name_map = {
@@ -142,4 +137,13 @@ def main():
         print("You can check the results in the corresponding JSON files.")
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser(description="Run SAT sports scheduling models.")
+    parser.add_argument('--initial_n', type=int, default=2, help='Initial number of teams (even)')
+    parser.add_argument('--final_n', type=int, default=16, help='Final number of teams (even, exclusive)')
+    parser.add_argument('--modelname', type=str, default=None, help='Model name: heule, sequential, naive, binary')
+    parser.add_argument('--optimize', action='store_true', default=True, help='Enable optimization (default: True)')
+    parser.add_argument('--save_res', action='store_true', default=True, help='Save results to JSON files (default: True)')
+    args = parser.parse_args()
+
+    main(args.initial_n, args.final_n, args.modelname, args.optimize, args.save_res)

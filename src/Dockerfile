@@ -2,7 +2,8 @@ FROM python:3.12-slim
 
 # Set working dir
 WORKDIR /cdmo
-COPY . .
+COPY . ./src
+RUN mkdir res
 
 # Install system dependencies
 RUN apt update && apt install -y \
@@ -30,6 +31,10 @@ RUN wget https://github.com/MiniZinc/MiniZincIDE/releases/download/2.8.4/MiniZin
 ARG AMPL_KEY=""
 RUN python3 -m amplpy.modules install highs cbc scip && \
     if [ -n "$AMPL_KEY" ]; then python3 -m amplpy.modules activate "$AMPL_KEY"; else echo "No AMPL key provided."; fi
+
+# Debug
+RUN apt-get update && apt-get install -y tree && apt-get clean
+RUN tree -L 3
 
 # Fix line endings for entrypoint (in case from Windows)
 RUN dos2unix ./entrypoint.sh
