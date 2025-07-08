@@ -82,14 +82,14 @@ def main():
     parser.add_argument('--final_n', type=int, default=16, help='Final number of teams (even, exclusive)')
     parser.add_argument('--modelname', type=str, default=None, help='Model name: heule, sequential, naive, binary')
     parser.add_argument('--optimize', action='store_true', default=True, help='Enable optimization (default: True)')
-    parser.add_argument('--save_result', action='store_true', default=True, help='Save results to JSON files (default: True)')
+    parser.add_argument('--save_res', action='store_true', default=True, help='Save results to JSON files (default: True)')
     args = parser.parse_args()
 
     n_start = args.initial_n
     n_end = args.final_n
     selected_model = args.modelname.lower() if args.modelname else None
     optimize = args.optimize
-    save_result = args.save_result
+    save_res = args.save_res
     ns = list(range(n_start, n_end, 2))
 
     model_name_map = {
@@ -129,13 +129,13 @@ def main():
                     print(f"Objective function score (max imb - min imb - 2): {obj} (ideally should be 0)\n")
             else:
                 print("\tNo solution found.")
-            if(save_result and optimize):
+            if(save_res and optimize):
                 save_result(n, model_name, (elapsed, optimal, obj, schedule), timeout=timeout)
-            if (save_result and not optimize):
+            if (save_res and not optimize):
                 save_result(n, model_name, (elapsed, optimal, None, schedule), timeout=timeout)
         print("\n" + "=" * 80 + "\n")
     print("All models completed.")
-    if save_result:
+    if save_res:
         print(f"Results saved in {os.path.abspath('../../res/SAT/')}")
         print("You can check the results in the corresponding JSON files.")
 
