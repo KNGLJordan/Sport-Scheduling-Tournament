@@ -74,7 +74,7 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
         json.dump(existing, f, indent=4)
 
 def main():
-    """ Usage: python main_sat_solver.py [n_start] [n_end] [optimize] 
+    """ Usage: python main_sat_solver.py [n_start] [n_end] [optimize] [model_name]
            If optimize=False: just solve the decision problem (imbalance is not minimized, just check feasibility).
            If optimize=True: do the search for minimum imbalance.
           Set the optimal output as:
@@ -84,14 +84,32 @@ def main():
             For decision: None.
             For optimization: best_imbalance found."""
 
-    n_start = int(sys.argv[1]) if len(sys.argv) > 1 else 6
-    n_end = int(sys.argv[2]) if len(sys.argv) > 2 else 12
-    optimize = bool(int(sys.argv[3])) if len(sys.argv) > 3 else True
-    save_res = bool(int(sys.argv[4])) if len(sys.argv) > 4 else True
+    n_start = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+    n_end = int(sys.argv[2]) if len(sys.argv) > 2 else 16
 
+    # Map user-friendly names to model keys
+    model_name_map = {
+        "heule": "sat_z3_binsearch_heule",
+        "sequential": "sat_z3_binsearch_seq",
+        "naive": "sat_z3_binsearch_np",
+        "binary": "sat_z3_binseach_bw",
+    }
+
+    # Accept model name as optional 3rd argument
+    selected_model = sys.argv[3].lower() if len(sys.argv) > 3 else None
+
+    optimize = True
+    save_res = False
     ns = list(range(n_start, n_end, 2))
+
+    # Determine which models to use
+    if selected_model and selected_model in model_name_map:
+        models_to_run = {model_name_map[selected_model]: models[model_name_map[selected_model]]}
+    else:
+        models_to_run = models
+
     for n in ns:
-        for model_name, model_func in models.items():
+        for model_name, model_func in models_to_run.items():
             print(f"SOLVING N={n} WITH MODEL={model_name} (OPTIMIZE={optimize})")
             timeout = 300  # Set a timeout of 5 minutes
             elapsed, optimal, obj, schedule = model_func[0](n=n, timeout=timeout, optimize=optimize, encoding = model_func[1])

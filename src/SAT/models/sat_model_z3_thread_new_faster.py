@@ -245,10 +245,10 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
     else:
         decision_problem_feasible()
 
-def sports_scheduling_sat(n, timeout=300, optimize=True, encoding='heule'):
+def sports_scheduling_sat(n, timeout=300, optimize=True, encoding='he'):
 
     if encoding not in ['he', 'seq', 'np', 'bw']:
-        raise ValueError(f"Unsupported encoding: {encoding}. Supported encodings are 'heule', 'seq', 'np' and 'bw'.")
+        raise ValueError(f"Unsupported encoding: {encoding}. Supported encodings are 'he', 'seq', 'np' and 'bw'.")
 
     queue = multiprocessing.Queue()
     p = multiprocessing.Process(target=_sat_worker, args=(queue, n, timeout, optimize, encoding))
