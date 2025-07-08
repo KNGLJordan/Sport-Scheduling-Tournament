@@ -51,7 +51,7 @@ def save_result(n, model_name, result, folder="../../res/SAT/", timeout=300):
         }
 
     else:
-        check = check_solution(schedule)
+        check = check_solution(schedule, obj_to_save, elapsed, optimal)
         if check != "Valid solution":
             print(f"\t[!] Invalid solution for n={n}, model={model_name}: {check}")
             return
