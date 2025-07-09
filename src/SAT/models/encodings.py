@@ -8,19 +8,19 @@ from itertools import combinations
 def at_least_one_np(bool_vars):
     return Or(bool_vars)
 
-def exactly_one_np(bool_vars, name=""):  # Already OK
+def exactly_one_np(bool_vars, name=""):
     return And(at_least_one_np(bool_vars), at_most_one_np(bool_vars, name))
 
-def at_most_one_np(bool_vars, name=""):  # Already OK
+def at_most_one_np(bool_vars, name=""):
     return And([Not(And(pair[0], pair[1])) for pair in combinations(bool_vars, 2)])
 
-def at_least_k_np(bool_vars, k, name=""):  # <- add `name`
+def at_least_k_np(bool_vars, k, name=""):
     return at_most_k_np([Not(var) for var in bool_vars], len(bool_vars) - k, name)
 
-def at_most_k_np(bool_vars, k, name=""):  # <- add `name`
+def at_most_k_np(bool_vars, k, name=""): 
     return And([Or([Not(x) for x in X]) for X in combinations(bool_vars, k + 1)])
 
-def exactly_k_np(bool_vars, k, name=""):  # <- add `name`
+def exactly_k_np(bool_vars, k, name=""):
     return And(at_most_k_np(bool_vars, k, name), at_least_k_np(bool_vars, k, name))
 
 
@@ -32,7 +32,7 @@ def at_least_one_seq(bool_vars):
 def at_most_one_seq(bool_vars, name):
     n = len(bool_vars)
     if n <= 1:
-        return True  # No constraints needed
+        return True 
 
     constraints = []
     s = [Bool(f"s_{name}_{i}") for i in range(n - 1)]
