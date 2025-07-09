@@ -1,0 +1,50 @@
+{
+    "shark_mip_opt_3_gurobi": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_gurobi": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_cbc": {
+        "time": 310,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_cbc": {
+        "time": 298,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_cplex": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_cplex": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_highs": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "shark_mip_opt_3_imp_highs": {
+        "time": 301,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    }
+}
