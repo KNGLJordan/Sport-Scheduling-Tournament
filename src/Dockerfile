@@ -31,9 +31,12 @@ RUN wget https://github.com/MiniZinc/MiniZincIDE/releases/download/2.8.4/MiniZin
     cp -r minizinc/lib/* /usr/local/lib
 
 # Ampl setup
-ARG AMPL_KEY=""
-RUN python3 -m amplpy.modules install highs cbc scip && \
-    if [ -n "$AMPL_KEY" ]; then python3 -m amplpy.modules activate "$AMPL_KEY"; else echo "No AMPL key provided."; fi
+ARG AMPL_UUID
+ENV AMPL_LICENSE_UUID=${AMPL_UUID}
+RUN python3 -m amplpy.modules install highs cbc scip gurobi cplex 
+
+# Install AMPL license
+RUN python3 -c "import os; from amplpy import modules; k=os.getenv('AMPL_LICENSE_UUID'); print(f'Activating with {k}'); modules.activate(k)"
 
 # Debug
 RUN apt-get update && apt-get install -y tree && apt-get clean
@@ -42,6 +45,8 @@ RUN tree -L 3
 # Fix line endings for entrypoint (in case from Windows)
 RUN dos2unix ./src/entrypoint.sh
 RUN chmod +x ./src/entrypoint.sh
+
+RUN chmod +x ./src/collect_data.sh
 
 # Entry point
 ENTRYPOINT ["./src/entrypoint.sh"]

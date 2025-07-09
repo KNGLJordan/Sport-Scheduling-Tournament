@@ -159,7 +159,7 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
         best_sched = None
 
         # Binary search over possible even objective indexes
-        while start <= end:
+        while start < end:
             mid_index = (start + end) // 2
             mid = objective_values[mid_index]
             # Ensure we only test even objective values
@@ -216,7 +216,7 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                 decision_problem_feasible()
                 time_after = time.time()
                 #print(f"  Decision problem check completed in {time_after - time_before:.2f} seconds")
-                end = mid_index -1
+                end = mid_index
 
             else:
                 # Build and check the solver
@@ -237,7 +237,7 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                     best_obj = mid
                     best_sched = extract_schedule(best_model, home, away, teams, weeks, periods)
 
-                    end = mid_index -1 # !!!
+                    end = mid_index # !!!
             
                 else:
                     #print("  No solution found, trying higher objective")

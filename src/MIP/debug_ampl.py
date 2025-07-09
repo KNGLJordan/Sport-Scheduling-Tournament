@@ -5,7 +5,7 @@ import os
 # ----------------------------- GLOBAL SETTINGS ------------------------------
 
 # Set these once and they will be used by all solvers/models
-SEED       = 81     # random seed
+SEED       = 63     # random seed
 TIME_LIMIT = 20    # seconds
 MIP_SEARCH = 0  # 0: default, 1: branch and cut, 2: dynamic search ## ONLY for CPLEX ##
 MIP_FOCUS = 3   # 0 - Balance finding good feasible solutions and proving optimality (default), 1 - Favor finding feasible solutions, 2 - Favor providing optimality, 3 - Focus on improving the best objective bound.
@@ -47,9 +47,9 @@ solver_dict = {
 
 solver_keys = [
     'gurobi',
-    # 'cbc',
-    # 'cplex',
-    # 'highs'
+    'cbc',
+    'cplex',
+    'highs'
 ]
 
 # ------------------------------- MODELS ----------------------------------
@@ -61,7 +61,7 @@ models = [
     #'shark_mip.mod',
     #'shark_mip_opt.mod',
     # 'shark_mip_opt_2.mod',
-    # 'shark_mip_opt_3.mod',
+    'shark_mip_opt_3.mod',
     'shark_mip_opt_3_imp.mod',
     # 'monkey_mip_opt.mod',
 ]
@@ -96,7 +96,7 @@ def print_solutions(model_filename: str,
         for n in n_values:
             elapsed, optimal, obj, sol = solve_mip(
                 ampl=ampl,
-                model_filename=model_filename,
+                model_filename=os.path.join(models_folder, model_filename),
                 solver=cfg['solver'],
                 n=n,
                 option_key=cfg['option_key'],
@@ -123,26 +123,13 @@ def print_solutions(model_filename: str,
 def main():
 
     for m in models:
-        # print(f"\n=== Solving model: {m} ===")
-        # print_solutions(
-        #     model_filename=m,
-        #     n_values=range(6, 18, 2),  # example n_values range; adjust as you like
-        #     print_solution=True,
-        #     time_limit=300
-        # )
-
-        for seed in range(30,70):
-            print(f"\n=== Solving model: {m} with seed {seed} ===")
-            print()
-            # example n_values range; adjust as you like
-            print_solutions(
-                model_filename=os.path.join(models_folder, m),
-                n_values=range(16, 18, 2),
-                print_solution=False,
-                seed=seed,
-                time_limit=300,
-                save_results=True,
-            )
+        print(f"\n=== Solving model: {m} ===")
+        print_solutions(
+            model_filename=m,
+            n_values=range(2, 4, 2),  # example n_values range; adjust as you like
+            print_solution=True,
+            time_limit=300
+        )
 
 if __name__ == '__main__':
     main()

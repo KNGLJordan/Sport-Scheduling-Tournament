@@ -1,4 +1,5 @@
-#the man the myth the legend: angelo quarta
+#the following encodings are based on the slides of the course and the repository of Angelo Quarta
+#https://github.com/NglQ/CDMO-exercises/tree/main/SAT
 
 from z3 import *
 from itertools import combinations
