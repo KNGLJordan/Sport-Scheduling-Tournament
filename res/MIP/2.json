@@ -28,7 +28,7 @@
     "shark_mip_opt_3_cbc": {
         "time": 0,
         "optimal": true,
-        "obj": -2,
+        "obj": 0,
         "sol": [
             [
                 [
@@ -41,7 +41,7 @@
     "shark_mip_opt_3_imp_cbc": {
         "time": 0,
         "optimal": true,
-        "obj": -2,
+        "obj": 0,
         "sol": [
             [
                 [
