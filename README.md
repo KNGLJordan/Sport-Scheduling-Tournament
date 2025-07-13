@@ -1,26 +1,10 @@
 # CDMO-project
 
-## Structure
+### /res
+Results obtained.
 
-.
-
-├── 2024-2025 CDMO Project Work Description.pdf
-
-├── CDMO_Project_Template.pdf
-
-├── Lab
-
-├── README.md
-
-├── res
-
-├── res_demo
-
-├── setup_cdmo_env.sh
-
-├── src
-
-└── src_demo
+### /src
+Source code for every different approach.
 
 ### setup_cdmo_env.sh
 
@@ -37,11 +21,3 @@ chmod +x setup_cdmo_env.sh
 ```bash
 ./setup_cdmo_env.sh
 ```
-  
-
-
-
-## res-demo
-
-- It containes a demo version of the project based on the N-Queens problem
-- The purpose is to have a guideline for the real project
