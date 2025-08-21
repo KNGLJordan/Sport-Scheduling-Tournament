@@ -1,5 +1,6 @@
 from amplpy import AMPL
 from ampl_utils import solve_mip
+from solution_checker import check_solution
 import os
 
 # ----------------------------- GLOBAL SETTINGS ------------------------------
@@ -12,7 +13,7 @@ MIP_FOCUS = 3   # 0 - Balance finding good feasible solutions and proving optima
 CUTS       = -1  # -1 - Automatic choice (default), 0 - No cuts, 1 - Conservative cut generation, 2 - Aggressive cut generation, 3 - Very aggressive cut generation.
 # ------------------------------- SOLVERS -----------------------------------------
 
-solver_dict = {
+SOLVER_DICT = {
     'gurobi': {
         'solver': 'gurobi',
         'option_key': 'gurobi_options',
@@ -45,25 +46,25 @@ solver_dict = {
     }
 }
 
-solver_keys = [
+SOLVER_KEYS = [
     'gurobi',
-    'cbc',
+    # 'cbc',
     'cplex',
-    'highs'
+    # 'highs'
 ]
 
 # ------------------------------- MODELS ----------------------------------
-models_folder = 'models/'
+MODELS_FOLDER = 'models/'
 
-models = [
-    #'shark_mip_noHAmat.mod',
-    # 'shrk_mip_2.mod',
-    #'shark_mip.mod',
-    #'shark_mip_opt.mod',
-    # 'shark_mip_opt_2.mod',
-    'shark_mip_opt_3.mod',
-    'shark_mip_opt_3_imp.mod',
+MODELS = [
+    # 'shark_mip.mod',
+    # 'shark_mip_imp.mod',
+    'shark_mip_opt.mod',
+    # 'shark_mip_opt_imp.mod',
+    # 'monkey_mip.mod',
+    # 'monkey_mip_imp.mod',
     # 'monkey_mip_opt.mod',
+    # 'monkey_mip_opt_imp.mod'
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
@@ -81,9 +82,9 @@ def print_solutions(model_filename: str,
     # Create AMPL instance
     ampl = AMPL()
 
-    for s_key in solver_keys:
+    for s_key in SOLVER_KEYS:
 
-        cfg = solver_dict[s_key]
+        cfg = SOLVER_DICT[s_key]
         # build the option string once per solver:
         #   e.g. "timelimit=300 seed=42"
         opt_str = (
@@ -96,7 +97,7 @@ def print_solutions(model_filename: str,
         for n in n_values:
             elapsed, optimal, obj, sol = solve_mip(
                 ampl=ampl,
-                model_filename=os.path.join(models_folder, model_filename),
+                model_filename=os.path.join(MODELS_FOLDER, model_filename),
                 solver=cfg['solver'],
                 n=n,
                 option_key=cfg['option_key'],
@@ -106,6 +107,7 @@ def print_solutions(model_filename: str,
                 print_solution=print_solution
             )
             print(f"Solver={cfg['solver']}, n={n}, time={elapsed:.1f}s, obj={obj}, optimal={optimal}")
+            print(check_solution(sol, obj, elapsed, optimal))
             print()
 
             if elapsed >= time_limit:
@@ -122,11 +124,11 @@ def print_solutions(model_filename: str,
 
 def main():
 
-    for m in models:
+    for m in MODELS:
         print(f"\n=== Solving model: {m} ===")
         print_solutions(
             model_filename=m,
-            n_values=range(2, 4, 2),  # example n_values range; adjust as you like
+            n_values=range(12, 14, 2),  # example n_values range; adjust as you like
             print_solution=True,
             time_limit=300
         )

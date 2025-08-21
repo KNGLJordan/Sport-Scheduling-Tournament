@@ -1,3 +1,52 @@
+# Gurobi 12.0.2:   lim:time = 300
+
+    # n = 6: 0.109 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 0.509 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 3.492 sec.
+    # Unbalance: 0.0
+
+    # n = 12: 20.736 sec.
+    # Unbalance: 0.0
+
+# cbc 2.10.12:   double:seconds = 300
+
+    # n = 6: 0.697 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 37.622 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 69.987 sec.
+    # Unbalance: 0.0
+
+# CPLEX 22.1.2:   lim:time = 300
+
+    # n = 6: 0.214 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 2.204 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 5.210 sec.
+    # Unbalance: 0.0
+
+    # n = 12: 276.688 sec.
+    # Unbalance: 0.0
+
+# HiGHS 1.11.0:   lim:time = 300
+
+    # n = 6: 0.322 sec.
+    # Unbalance: 0.0
+
+    # n = 8: 9.329 sec.
+    # Unbalance: 0.0
+
+    # n = 10: 249.657 sec.
+    # Unbalance: 0.0
 
 param n;
 param weeks := n - 1;
@@ -6,6 +55,7 @@ param periods := n div 2;
 set Teams := 1..n;
 set WeekVals := 0..weeks;    
 set PeriodVals := 0..periods;
+set HomeAwayVals := -1..1;
 
 # unary encoding for weeks_matrix
 
@@ -31,44 +81,22 @@ subject to EncodePeriod{i in Teams, j in Teams}:
 
 # unary encoding for home/away matrix
 
-var home_matrix {i in Teams, j in Teams} binary;
+var h_enc{i in Teams, j in Teams, h in HomeAwayVals} binary;
+var home_matrix {i in Teams, j in Teams} integer;
+
+subject to OneHotHome{i in Teams, j in Teams}:
+    sum{h in HomeAwayVals} h_enc[i,j,h] = 1;
+
+subject to EncodeHome{i in Teams, j in Teams}:
+    home_matrix[i,j] = sum{h in HomeAwayVals} h * h_enc[i,j,h];
 
 # ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
 
 # Minimize the sum over teams of the absolute value of the sum of each row (excluding diagonal)
 # (n can be substracted since the lower bound is n, which is the number of teams)
 
-var balance {t in Teams} integer, >= -periods, <= periods;
-
-subject to BalanceCalculation {t1 in Teams}:
-    balance[t1] = 2 * sum {t2 in Teams} home_matrix[t1,t2] - weeks;
-
-var b_max {t in Teams} binary;
-var b_min {t in Teams} binary;
-var max_balance;
-var min_balance;
-
-subject to only_one_b_max:
-    sum {t in Teams} b_max[t] = 1;
-
-subject to max_balance_is_greater {t in Teams}:
-    max_balance >= balance[t];
-
-subject to max_selector {t in Teams}:
-    max_balance <= balance[t] + (2 * periods) * (1 - b_max[t]);
-
-
-subject to only_one_b_min:
-    sum {t in Teams} b_min[t] = 1;
-
-subject to min_balance_is_lower {t in Teams}:
-    min_balance <= balance[t];
-
-subject to min_selector {t in Teams}:
-    min_balance >= balance[t] - (2 * periods) * (1 - b_min[t]);
-
 minimize Unbalance:
-    max_balance - min_balance - 2;
+    sum{i in Teams} abs(sum{j in Teams: i != j} home_matrix[i,j]) - n;
 
 
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------
@@ -89,8 +117,13 @@ subject to DiagonalPeriod{i in Teams}:
 subject to NoOtherPeriod{i in Teams, p in PeriodVals: p != 0}:
     p_enc[i,i,p] = 0;
 
+# a team does not play against itself in any home/away match
+
 subject to DiagonalHome{i in Teams}:
-    home_matrix[i,i] = 0; 
+    h_enc[i,i,0] = 1;
+
+subject to NoOtherHome{i in Teams, h in HomeAwayVals: h != 0}:
+    h_enc[i,i,h] = 0;
 
 # ---------------------------- WEEKS MATRIX ----------------------------------------------------------------
 
@@ -132,9 +165,13 @@ subject to MatchesPerPeriod{p in PeriodVals: p > 0}:
 
 # ---------------------------- HOME/AWAY MATRIX -------------------------------------------------------------
 
+# every match is either home or away
+subject to NoZeroHomeAwayMatch{t1 in Teams, t2 in Teams: t1 != t2}:
+    h_enc[t1, t2, 0] = 0;
+
 # the matches are symmetric (if 1 plays at home against 2, then also 2 plays away against 1)
-subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams: t1 != t2}:
-    home_matrix[t1, t2] + home_matrix[t2, t1] = 1;
+subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams, h in HomeAwayVals: t1 < t2}:
+    h_enc[t1, t2, h] = h_enc[t2, t1, -h];
 
 # -------------------- SAME WEEK => DIFFERENT PERIOD --------------------------------------------------------
 
@@ -145,7 +182,7 @@ var z_enc{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2} bin
 # encoding of the AND relation 
 
 # C1 /\ C2
-# becomes 
+# becomes
 # b1 <= b, b2 <= b, b1 + b2 <= b +1 
 
 subject to LinkZ1{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
@@ -162,10 +199,5 @@ subject to LinkZ3{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 <
 subject to AlldifferentPeriodsPerWeek{w in WeekVals, p in PeriodVals}:
     sum{t1 in Teams, t2 in Teams: t1 < t2} z_enc[t1,t2,w,p] <= 1;
 
-# -------------------- IMPLIED CONSTRAINTS --------------------------------------------------------
 
-subject to AllDifferentWeeksNoDiagImpl{t1 in Teams, w in WeekVals}:
-    sum{t2 in Teams: t2 != t1} w_enc[t2, t1, w] <= 1;
 
-subject to MaxTwoPeriodsImpl{t1 in Teams, p in PeriodVals}:
-    sum{t2 in Teams: t2 != t1} p_enc[t2, t1, p] <= 2;

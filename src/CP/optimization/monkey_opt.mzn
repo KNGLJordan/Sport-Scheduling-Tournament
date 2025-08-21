@@ -6,10 +6,6 @@ int: n; % number of teams
 int: weeks = n-1; % number of weeks
 int: periods = n div 2; % number of periods
 
-% --- SEARCH STRATEGY PARAMETERS ---
-
-int: rr_percentage;
-
 % --- VARIABLES ---
 
 array[1..weeks, 1..n] of var 1..n: matches; % for every team and week, the opponent
@@ -28,12 +24,6 @@ constraint
 var int: unbalance_score = max(home_balance) - min(home_balance) - 2;
 
 % --- CONSTRAINTS ---
-
-constraint
-  unbalance_score != 0;
-  
-constraint
-  max(home_balance) = 1;
 
 % 1. every team plays with every other team only once
 constraint
@@ -59,26 +49,6 @@ constraint
 constraint
   forall(w in 1..weeks, t in 1..n)(home_matrix[w, t] != home_matrix[w, matches[w, t]])::domain_propagation;
 
-% --- IMPLIED CONSTRAINTS ---
-
-% 1. every match is symmetric
-constraint
-  forall(w in 1..weeks, t in 1..n)(matches[w, matches[w, t]] = t);
-
-% --- SYMMETRY BREAKING ---
-
-% 1. impose the columns of the matrix matches to be in lex order
-constraint
-  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([matches[w,t] | t in 1..n], [matches[w2,t] | t in 1..n]));
-
-% 2. same as above for periods
-constraint
-  forall(w in 1..weeks-1, w2 in w+1..weeks)(lex_lesseq([periods_matrix[w,t] | t in 1..n], [periods_matrix[w2,t] | t in 1..n]));  
-
 % --- SOLVE ---
 
-solve 
-::int_search(matches, first_fail, indomain_min)
-::relax_and_reconstruct([home_matrix[i,j] | i in 1..weeks, j in 1..n], 85)
-% minimize abs(unbalance_score);
-satisfy;
+solve minimize abs(unbalance_score);

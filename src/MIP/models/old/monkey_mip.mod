@@ -1,20 +1,3 @@
-# Gurobi 12.0.2:   lim:time = 300
-
-# n = 6: 0.055 sec.
-# n = 8: 0.136 sec.
-# n = 10: 14.988 sec.
-# n = 12: 107.012 sec.
-# n = 14: 300.872 sec.
-
-# cbc 2.10.12:   double:seconds = 300
-
-
-# CPLEX 22.1.2:   lim:time = 300
-
-
-# HiGHS 1.11.0:   lim:time = 300
-
-
 
 param n;
 param weeks := n - 1;
@@ -25,7 +8,6 @@ set WeekVals := 1..weeks;
 set PeriodVals := 1..periods;
 
 # unary encoding for matches
-
 var m_enc{w in WeekVals, i in Teams, j in Teams} binary;
 var matches{w in WeekVals, i in Teams} integer;
 
@@ -36,7 +18,6 @@ subject to EncodeMatch{w in WeekVals, i in Teams}:
     matches[w,i] = sum{j in Teams} j * m_enc[w,i,j];
 
 # unary encoding for periods_matrix
-
 var p_enc{w in WeekVals, i in Teams, p in PeriodVals} binary;
 var periods_matrix{w in WeekVals, i in Teams} integer;
 
@@ -45,6 +26,9 @@ subject to OneHotPeriod{w in WeekVals, i in Teams}:
 
 subject to EncodePeriod{w in WeekVals, i in Teams}:
     periods_matrix[w,i] = sum{p in PeriodVals} p * p_enc[w,i,p];
+
+# unary encoding for home/away matrix
+var home_matrix{w in WeekVals, i in Teams} binary;
 
 # ---------------------------- MATCHES MATRIX ----------------------------------------------------------------
 
@@ -56,26 +40,31 @@ subject to AllDifferentMatches{t1 in Teams, t2 in Teams: t1 != t2}:
 subject to OneGamePerWeek{w in WeekVals, t1 in Teams}:
     sum{t2 in Teams: t2 != t1} m_enc[w, t1, t2] = 1;
 
-subject to symmetry{t1 in Teams, t2 in Teams, w in WeekVals: t1 < t2}:
+# the matches are symmetric (if 1 plays against 2 on week 1, then also 2 plays against 1 on week 1)
+subject to MatchesSymmetry{t1 in Teams, t2 in Teams, w in WeekVals: t1 < t2}:
     m_enc[w,t1,t2] = m_enc[w,t2,t1];
 
 # ---------------------------- PERIODS MATRIX ---------------------------------------------------------------
 
 # every team plays at most twice in the same period over the tournament  
-
 subject to MaxTwoPeriods{t in Teams, p in PeriodVals}:
     sum{w in WeekVals} p_enc[w, t, p] <= 2;
 
 # every week have exactly two periods
-
 subject to ExactlyTwoPeriodsPerWeek{w in WeekVals, p in PeriodVals}:
     sum{t in Teams} p_enc[w, t, p] = 2;
 
+# ---------------------------- HOME/AWAY MATRIX -------------------------------------------------------------
+
+# same match have 1 home team and 1 away team (SameMatchDifferentHome)
+subject to SMDHLowerBound{t1 in Teams, t2 in Teams, w in WeekVals: t1 < t2}:
+    home_matrix[w,t1] + home_matrix[w,t2] >= m_enc[w,t1,t2];
+
+subject to SMDHUpperBound{t1 in Teams, t2 in Teams, w in WeekVals: t1 < t2}:
+    home_matrix[w,t1] + home_matrix[w,t2] <= 2 - m_enc[w,t1,t2];
+
 # -------------------- SAME MATCH => SAME PERIOD --------------------------------------------------------
 
-subject to same_period_for_match{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
+subject to SameMatchSamePeriod{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
     p_enc[w,t1,p] - p_enc[w,t2,p] <= 1 - m_enc[w,t1,t2];
-
-
-
 

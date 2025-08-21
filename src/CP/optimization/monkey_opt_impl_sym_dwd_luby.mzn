@@ -8,7 +8,8 @@ int: periods = n div 2; % number of periods
 
 % --- SEARCH STRATEGY PARAMETERS ---
 
-int: rr_percentage;
+int: luby_value;
+
 
 % --- VARIABLES ---
 
@@ -28,12 +29,6 @@ constraint
 var int: unbalance_score = max(home_balance) - min(home_balance) - 2;
 
 % --- CONSTRAINTS ---
-
-constraint
-  unbalance_score != 0;
-  
-constraint
-  max(home_balance) = 1;
 
 % 1. every team plays with every other team only once
 constraint
@@ -78,7 +73,6 @@ constraint
 % --- SOLVE ---
 
 solve 
-::int_search(matches, first_fail, indomain_min)
-::relax_and_reconstruct([home_matrix[i,j] | i in 1..weeks, j in 1..n], 85)
-% minimize abs(unbalance_score);
-satisfy;
+::int_search(matches, dom_w_deg, indomain_random)
+::restart_luby(luby_value)
+minimize abs(unbalance_score);

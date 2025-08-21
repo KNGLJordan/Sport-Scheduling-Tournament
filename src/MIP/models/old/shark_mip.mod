@@ -1,4 +1,8 @@
 
+
+
+
+#--------------------------------------------------------- MODEL WITH HOME MATRIX --------------------------------------------------------------------------------
 param n;
 param weeks := n - 1;
 param periods := n div 2;
@@ -6,8 +10,10 @@ param periods := n div 2;
 set Teams := 1..n;
 set WeekVals := 0..weeks;    
 set PeriodVals := 0..periods;
+set HomeAwayVals := -1..1;
 
 # unary encoding for weeks_matrix
+
 var w_enc{i in Teams, j in Teams, w in WeekVals} binary; # binary or integer??? TO-THINK
 var weeks_matrix{i in Teams, j in Teams} integer;
 
@@ -18,6 +24,7 @@ subject to EncodeWeek{i in Teams, j in Teams}:
     weeks_matrix[i,j] = sum{w in WeekVals} w * w_enc[i,j,w];
 
 # unary encoding for periods_matrix
+
 var p_enc{i in Teams, j in Teams, p in PeriodVals} binary; # binary or integer??? TO-THINK
 var periods_matrix{i in Teams, j in Teams} integer;
 
@@ -28,11 +35,20 @@ subject to EncodePeriod{i in Teams, j in Teams}:
     periods_matrix[i,j] = sum{p in PeriodVals} p * p_enc[i,j,p];
 
 # unary encoding for home/away matrix
-var home_matrix {i in Teams, j in Teams} binary;
+
+var h_enc{i in Teams, j in Teams, h in HomeAwayVals} binary;
+var home_matrix {i in Teams, j in Teams} integer;
+
+subject to OneHotHome{i in Teams, j in Teams}:
+    sum{h in HomeAwayVals} h_enc[i,j,h] = 1;
+
+subject to EncodeHome{i in Teams, j in Teams}:
+    home_matrix[i,j] = sum{h in HomeAwayVals} h * h_enc[i,j,h];
 
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------
 
 # a team does not play against itself in any week
+
 subject to DiagonalWeek{i in Teams}:
     w_enc[i,i,0] = 1;
 
@@ -40,52 +56,68 @@ subject to NoOtherWeek{i in Teams, w in WeekVals: w != 0}:
     w_enc[i,i,w] = 0;
 
 # a team does not play against itself in any period
+
 subject to DiagonalPeriod{i in Teams}:
     p_enc[i,i,0] = 1;
 
 subject to NoOtherPeriod{i in Teams, p in PeriodVals: p != 0}:
     p_enc[i,i,p] = 0;
 
+# a team does not play against itself in any home/away match
+
 subject to DiagonalHome{i in Teams}:
-    home_matrix[i,i] = 0; 
+    h_enc[i,i,0] = 1;
+
+subject to NoOtherHome{i in Teams, h in HomeAwayVals: h != 0}:
+    h_enc[i,i,h] = 0;
 
 # ---------------------------- WEEKS MATRIX ----------------------------------------------------------------
 
 #every team plays with every other team only once and plays once a week
+
 subject to AllDifferentWeeksNoDiag{t1 in Teams, w in WeekVals}:
     sum{t2 in Teams: t2 != t1} w_enc[t1, t2, w] <= 1;
 
 # the matches are symmetric (if 1 plays against 2 on week 1, then also 2 plays against 1 on week 1)
+
 subject to WeeksSymmetry{t1 in Teams, t2 in Teams, w in WeekVals: t1 < t2}:
     w_enc[t1, t2, w] = w_enc[t2, t1, w];
 
 # every match is on a valid week
+
 subject to NoZeroWeekMatch{t1 in Teams, t2 in Teams: t1 != t2}:
     w_enc[t1, t2, 0] = 0;
 
 # ---------------------------- PERIODS MATRIX ---------------------------------------------------------------
 
 # every team plays at most twice in the same period over the tournament  
+
 subject to MaxTwoPeriods{t1 in Teams, p in PeriodVals}:
     sum{t2 in Teams: t2 != t1} p_enc[t1, t2, p] <= 2;
 
 # the matches are symmetric (if 1 plays against 2 on period 1, then also 2 plays against 1 on period 1)
+
 subject to PeriodsSymmetry{t1 in Teams, t2 in Teams, p in PeriodVals: t1 < t2}:
     p_enc[t1, t2, p] = p_enc[t2, t1, p];
 
 # every match is on a valid period
+
 subject to NoZeroPeriodMatch{t1 in Teams, t2 in Teams: t1 != t2}:
     p_enc[t1, t2, 0] = 0;
 
-# every period have the same number of matches
+# % every period have the same number of matches
 subject to MatchesPerPeriod{p in PeriodVals: p > 0}:
     sum {t1 in Teams, t2 in Teams: t1 != t2} p_enc[t1, t2, p] = weeks * 2;
 
 # ---------------------------- HOME/AWAY MATRIX -------------------------------------------------------------
 
+# every match is either home or away
+subject to NoZeroHomeAwayMatch{t1 in Teams, t2 in Teams: t1 != t2}:
+    h_enc[t1, t2, 0] = 0;
+
 # the matches are symmetric (if 1 plays at home against 2, then also 2 plays away against 1)
-subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams: t1 < t2}:
-    home_matrix[t1, t2] + home_matrix[t2, t1] = 1;
+subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams, h in HomeAwayVals: t1 < t2}:
+    h_enc[t1, t2, h] = h_enc[t2, t1, -h];
 
 # -------------------- SAME WEEK => DIFFERENT PERIOD --------------------------------------------------------
 

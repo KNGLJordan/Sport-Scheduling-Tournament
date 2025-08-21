@@ -8,32 +8,15 @@ int: periods = n div 2; % number of periods
 
 % --- SEARCH STRATEGY PARAMETERS ---
 
-int: rr_percentage;
+int: luby_value;
+
 
 % --- VARIABLES ---
 
 array[1..weeks, 1..n] of var 1..n: matches; % for every team and week, the opponent
 array[1..weeks, 1..n] of var 1..periods: periods_matrix;  % for every team and week, the period of the match
-array[1..weeks, 1..n] of var {0,1}: home_matrix;  % for every team and week, 1 if plays home, 0 if plays away
-
-% --- OBJECTIVE ---
-
-array[1..n] of var int: home_balance;
-
-constraint
-  forall(t in 1..n)(
-    home_balance[t] = 2 * sum(w in 1..weeks)(home_matrix[w,t]) - weeks
-  );
-
-var int: unbalance_score = max(home_balance) - min(home_balance) - 2;
 
 % --- CONSTRAINTS ---
-
-constraint
-  unbalance_score != 0;
-  
-constraint
-  max(home_balance) = 1;
 
 % 1. every team plays with every other team only once
 constraint
@@ -55,10 +38,6 @@ constraint
 constraint
   forall(w in 1..weeks, t in 1..n)(periods_matrix[w, t] = periods_matrix[w, matches[w, t]])::domain_propagation;
 
-% 6. teams in a match plays home xor away
-constraint
-  forall(w in 1..weeks, t in 1..n)(home_matrix[w, t] != home_matrix[w, matches[w, t]])::domain_propagation;
-
 % --- IMPLIED CONSTRAINTS ---
 
 % 1. every match is symmetric
@@ -78,7 +57,6 @@ constraint
 % --- SOLVE ---
 
 solve 
-::int_search(matches, first_fail, indomain_min)
-::relax_and_reconstruct([home_matrix[i,j] | i in 1..weeks, j in 1..n], 85)
-% minimize abs(unbalance_score);
+::int_search(matches, dom_w_deg, indomain_random)
+::restart_luby(luby_value)
 satisfy;
