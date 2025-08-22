@@ -23,10 +23,10 @@ array[1..n] of var int: home_balance;
 
 constraint
   forall(t in 1..n)(
-    home_balance[t] = 2 * sum(w in 1..weeks)(home_matrix[w,t]) - weeks
+    home_balance[t] = abs(2 * sum(w in 1..weeks)(home_matrix[w,t]) - weeks)
   );
 
-var int: unbalance_score = max(home_balance) - min(home_balance) - 2;
+var 1..weeks: unbalance_score = max(home_balance);
 
 % --- CONSTRAINTS ---
 
@@ -75,4 +75,4 @@ constraint
 solve 
 ::int_search(matches, dom_w_deg, indomain_random)
 ::restart_luby(luby_value)
-minimize abs(unbalance_score);
+minimize unbalance_score;

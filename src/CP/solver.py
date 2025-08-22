@@ -115,7 +115,14 @@ def get_shark_opt_solution(n, result):
 def solve_cp(n: int, model: str, solver:str, search_params : dict = {} , timeout: int = 300, seed: int = 81):
 
     # Create a model instance
-    model_path = os.path.join("models", model) 
+    if "opt" in model:
+        model_path = os.path.join("optimization", model) 
+    elif "dec" in model:
+        model_path = os.path.join("decision", model) 
+    else:
+        print("Unknown model type. Cannot get solution.")
+        exit()
+
     #print(model_path)
     model_instance = Model(model_path)
     
@@ -151,9 +158,9 @@ def solve_cp(n: int, model: str, solver:str, search_params : dict = {} , timeout
             sol = get_monkey_opt_solution(n, result)
         elif "shark" in model and "opt" in model:
             sol = get_shark_opt_solution(n, result)
-        elif "monkey" in model:
+        elif "monkey" in model and "dec" in model:
             sol = get_monkey_solution(n, result)
-        elif "shark" in model:
+        elif "shark" in model and "dec" in model:
             sol = get_shark_solution(n, result)
         else:
             print("Unknown model type. Cannot get solution.")
@@ -377,8 +384,28 @@ models = [
     "monkey_opt_impl_sym.mzn",
     "monkey_opt_impl_sym_ff.mzn",
 ]
-
 gecode_models = [
+    "monkey_opt_impl_sym_dwd_luby.mzn",   
+    "monkey_opt_impl_sym_ff_rr.mzn",
+]
+
+decision_models = [
+    "monkey_dec.mzn",
+    "monkey_dec_impl.mzn",
+    "monkey_dec_impl_sym.mzn",
+    "monkey_dec_impl_sym_ff.mzn",
+]
+decision_gecode_models = [
+    "monkey_opt_impl_sym_dwd_luby.mzn",  
+]
+
+optimization_models = [
+    "monkey_opt.mzn",
+    "monkey_opt_impl.mzn",
+    "monkey_opt_impl_sym.mzn",
+    "monkey_opt_impl_sym_ff.mzn",
+]
+optimization_gecode_models = [
     "monkey_opt_impl_sym_dwd_luby.mzn",   
     "monkey_opt_impl_sym_ff_rr.mzn",
 ]
@@ -424,27 +451,38 @@ seed = 81
 
 # ----------------------------------- MAIN  ------------------------------------
 
-def main(initial_n:int, final_n:int, model:str):
+def main(initial_n:int, final_n:int, model:str = ""):
 
     n_values = range(initial_n, final_n+2, 2)
 
-    if model != "":
-        if model in gecode_models:
-            main_gecode_models = [model]
-            main_models = []
-        else:
-            main_gecode_models = []
-            main_models = [model]
-    else:
-        main_gecode_models = gecode_models
-        main_models = models
-        
+    main_decision_models = []
+    main_decision_gecode_models = []
+    main_optimization_models = []
+    main_optimization_gecode_models = []
 
+    if model != "":
+        if model in decision_models:
+            main_decision_models.append(model)
+        elif model in decision_gecode_models:
+            main_decision_gecode_models.append(model)
+        elif model in optimization_models:
+            main_optimization_models.append(model)
+        elif model in optimization_gecode_models:
+            main_optimization_gecode_models.append(model)
+        else:
+            print(f"Model {model} not recognized. Using all models.")
+            exit()
+    else:
+        main_decision_models = decision_models
+        main_decision_gecode_models = decision_gecode_models
+        main_optimization_models = optimization_models
+        main_optimization_gecode_models = optimization_gecode_models
+        
     # --- TESTING produce_json ---
     produce_json(n_values, 
                  solvers, 
-                 main_models, 
-                 main_gecode_models,
+                 main_decision_models+main_optimization_models, 
+                 main_decision_gecode_models+main_optimization_gecode_models,
                  luby_values=luby_values,
                  rr_percentages=rr_percentages,
                  folder="../../res/CP/")

@@ -22,10 +22,10 @@ array[1..n] of var int: home_balance;
 
 constraint
   forall(t in 1..n)(
-    home_balance[t] = 2 * sum(w in 1..weeks)(home_matrix[w,t]) - weeks
+    home_balance[t] = abs(2 * sum(w in 1..weeks)(home_matrix[w,t]) - weeks)
   );
 
-var int: unbalance_score = max(home_balance) - min(home_balance) - 2;
+var 1..weeks: unbalance_score = max(home_balance);
 
 % --- CONSTRAINTS ---
 
@@ -80,5 +80,4 @@ constraint
 solve 
 ::int_search(matches, first_fail, indomain_min)
 ::relax_and_reconstruct([home_matrix[i,j] | i in 1..weeks, j in 1..n], 85)
-% minimize abs(unbalance_score);
-satisfy;
+minimize unbalance_score;
