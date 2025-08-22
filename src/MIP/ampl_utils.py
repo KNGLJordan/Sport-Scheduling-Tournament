@@ -276,15 +276,13 @@ def solve_mip(ampl: AMPL,
     # Set silent options
     ampl.set_option("log_file", "")       
     ampl.set_option("display_options", 0) 
-    # ampl.set_option("presolve", 0)
+    # ampl.set_option("presolve", 10)
     ampl.set_option("solver_msg", 0) 
     ampl.set_option("solver", solver)
 
     # Check for an option to be set (the time limit)
     if option_value != "":
         ampl.set_option(option_key, option_value)
-
-    # ampl.setOption("randseed", 33)
 
     # Read the model
     ampl.read(model_filename)
@@ -305,9 +303,6 @@ def solve_mip(ampl: AMPL,
     # Stop time
     elapsed = time.time() - start_time
 
-    # Print time
-    # print(f"n = {n}: {elapsed:.3f} sec.")
-
     # Check if the solution is model is optimized
     optimization = False
     objective_val = None
@@ -319,8 +314,8 @@ def solve_mip(ampl: AMPL,
         # print("\t\tNo optimization.")
 
     # Status
-    if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (optimization and (objective_val < 0)):
-        print("\t\tSolution unfeasible.")
+    if (ampl.solve_result != 'solved') or (optimization and (objective_val < 0)):
+        print("\t\tSolution not found.")
         return elapsed, False, None, None
 
     HM_mat_present = True
@@ -349,7 +344,7 @@ def solve_mip(ampl: AMPL,
         print("\t\tUnknown model type. Cannot get solution.")
         sol = None
     
-    if not all(sol):
+    if not all(sol): # redoundand check
         sol = None
         print("\t\tNo solution found or solution is empty.")
     else:
@@ -370,9 +365,6 @@ def solve_mip(ampl: AMPL,
                         n=n,
                         HM_mat_present=HM_mat_present)
             
-            # print(ampl.get_variable('balance').get_values())
-            # print(ampl.get_variable('max_balance').get_values())
-            # print(ampl.get_variable('min_balance').get_values())
         else:
 
             print("Unknown model type. Cannot print solution.")

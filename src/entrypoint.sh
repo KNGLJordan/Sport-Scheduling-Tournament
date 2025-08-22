@@ -55,6 +55,7 @@ run_mip() {
     [ -n "$INITIAL_N" ] && CMD="$CMD --initial_n $INITIAL_N"
     [ -n "$FINAL_N" ] && CMD="$CMD --final_n $FINAL_N"
     [ -n "$MODEL_NAME" ] && CMD="$CMD --modelname $MODEL_NAME"
+    [ -n "$PROBLEM_TYPE" ] && CMD="$CMD --problem_type $PROBLEM_TYPE"
     echo "Running: $CMD"
     eval $CMD
     cd -

@@ -21,7 +21,7 @@ SOLVER_DICT = {
     'cbc': {
         'solver': 'cbc',
         'option_key': 'cbc_options',
-        'seed_param': 'randomCbcSeed=',
+        'seed_param': 'randomSeed=',
         'time_param': 'timelimit=',
     },
     'cplex': {
@@ -48,11 +48,14 @@ SOLVER_KEYS = [
 # ------------------------------- MODELS ----------------------------------
 MODELS_FOLDER = 'models/'
 
-MODELS = [
+DEC_MODELS = [
     'shark_mip.mod',
-    'shark_mip_imp.mod',
+    'shark_mip_imp.mod'
+]
+
+OPT_MODELS = [
     'shark_mip_opt.mod',
-    'shark_mip_opt_imp.mod',
+    'shark_mip_opt_imp.mod'
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
@@ -106,8 +109,8 @@ def produce_json(n_values:list,
 
             opt_str = (
                 f"{SOLVER_DICT[s_key]['seed_param']}{SEED} "
+                f"{SOLVER_DICT[s_key]['time_param']}{TIME_LIMIT} "
             )
-            opt_str += f"{SOLVER_DICT[s_key]['time_param']}{TIME_LIMIT} "
 
             for model in models:
 
@@ -167,15 +170,19 @@ def produce_json(n_values:list,
 
 # ---------------------------------- MAIN  -----------------------------------
 
-def main(initial_n:int, final_n:int, model:str, print_solution:bool):
+def main(initial_n:int, final_n:int, model:str, problem_type:str, print_solution:bool):
 
     n_values = range(initial_n, final_n + 1, 2)
 
     if model != "":
-        if model in MODELS:
+        if model in DEC_MODELS + OPT_MODELS:
             main_models = [model]
+    elif problem_type == 'DEC':
+        main_models = DEC_MODELS
+    elif problem_type == 'OPT':
+        main_models = OPT_MODELS
     else:
-        main_models = MODELS
+        main_models = DEC_MODELS + OPT_MODELS
 
     produce_json(n_values=n_values,
                  models=main_models,
@@ -188,8 +195,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve MIP models for given parameters.")
     parser.add_argument('--initial_n', type=int, default=2, help='Initial value of n (even integer)')
     parser.add_argument('--final_n', type=int, default=18, help='Final value of n (even integer)')
+    parser.add_argument('--problem_type', type=str, default="", help='Type of the problem to run (DEC or OPT)')
     parser.add_argument('--modelname', type=str, default="", help='Model file name (optional)')
     parser.add_argument('--debug', type=bool, default=False, help='Print solutions (optional)')
     args = parser.parse_args()
 
-    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n, print_solution=args.debug)
+    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n, problem_type=args.problem_type, print_solution=args.debug)

@@ -1,59 +1,47 @@
-import os
-import json
-import pandas as pd
-
+#!/usr/bin/env python3
 import sys
 import os
-from pathlib import Path
 import json
 
+def main():
+    if len(sys.argv) != 2:
+        print(f"Usage: python {sys.argv[0]} res/<model-approach>")
+        sys.exit(1)
 
+    folder = sys.argv[1]
+    if not os.path.isdir(folder):
+        print(f"Error: {folder} is not a valid directory")
+        sys.exit(1)
 
-def formatObjective(res):
-    if res["obj"] is None:
-        return "--"
-    elif res["optimal"]:
-        return f"\\textbf{{{res['obj']}}}"
-    else:
-        return f"{res['obj']}"
+    files = [f for f in os.listdir(folder) if f.endswith(".json")]
+    files.sort(key=lambda x: int(os.path.splitext(x)[0]))
 
+    for fname in files:
+        n_value = os.path.splitext(fname)[0]
+        print(f"--- N = {n_value} ---")
+        fpath = os.path.join(folder, fname)
+        with open(fpath, "r") as f:
+            data = json.load(f)
+
+        # Calcoliamo le larghezze massime per formattazione
+        model_names = list(data.keys())
+        max_model_len = max(len(m) for m in model_names)
+        max_time_len = max(len(str(data[m].get("time", ""))) for m in model_names)
+        max_opt_len = max(len(str(data[m].get("optimal", ""))) for m in model_names)
+        max_obj_len = max(len(str(data[m].get("obj", ""))) for m in model_names)
+
+        # Stampa allineata
+        for model, results in data.items():
+            time = results.get("time", "")
+            optimal = results.get("optimal", "")
+            obj = results.get("obj", "")
+            print(
+                f"{model.ljust(max_model_len)}  "
+                f"{str(time).ljust(max_time_len)}  "
+                f"{str(optimal).ljust(max_opt_len)}  "
+                f"{str(obj).ljust(max_obj_len)}"
+            )
+        print()
 
 if __name__ == "__main__":
-    res_dir = sys.argv[1]
-    results = {}
-
-    for res_name in os.listdir(res_dir):
-        instance_num = int(Path(res_name).stem)
-        # print(res_name, instance_num)
-
-        with open(os.path.join(res_dir, res_name), "r") as f:
-            results[instance_num] = json.load(f)
-
-    models = [ *results[instance_num].keys() ]
-    models_latex = [ m.replace("_", "-") for m in models ]
-    instances = sorted([ *results.keys() ])
-
-    # print(
-    #     "\\begin{table}[h]\n" +
-    #         "\t\\centering\n" +
-    #         "\t\\caption{Caption}\n" +
-    #         f"\t\\begin{{tabular}}{{c{'c'*len(models)}}}\n" +
-    #             "\t\t\\toprule\n" +
-    #             "\t\tId & " + " & ".join(models_latex) + " \\\\ \n" +
-    #             "\t\t\\midrule\n" +
-    #             "\t\t" + " \\\\ \n\t\t".join([
-    #                 f"{i} & " + " & \t".join([ formatObjective(results[i][m]) for m in models])
-    #                 for i in instances
-    #             ]) + " \\\\ \n" +
-    #             "\t\t\\bottomrule\n" +
-    #     "\t\\end{tabular}\n"
-    #     "\\end{table}\n"
-    # )
-
-    for i in instances:
-        print(f"--- Instance {i} ---")
-        for m in models:
-            print("Model:", m, end="    ")
-            print(results[i][m]["obj"])
-            
-
+    main()
