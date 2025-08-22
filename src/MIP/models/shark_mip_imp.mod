@@ -33,44 +33,6 @@ subject to EncodePeriod{i in Teams, j in Teams}:
 
 var home_matrix {i in Teams, j in Teams} binary;
 
-# ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
-
-# # Minimize the sum over teams of the absolute value of the sum of each row (excluding diagonal)
-# # (n can be substracted since the lower bound is n, which is the number of teams)
-
-# var balance {t in Teams} integer, >= -weeks, <= weeks;
-
-# subject to BalanceCalculation {t1 in Teams}:
-#     balance[t1] = 2 * sum {t2 in Teams} home_matrix[t1,t2] - weeks;
-
-# var b_max {t in Teams} binary;
-# var b_min {t in Teams} binary;
-# var max_balance;
-# var min_balance;
-
-# subject to only_one_b_max:
-#     sum {t in Teams} b_max[t] = 1;
-
-# subject to max_balance_is_greater {t in Teams}:
-#     max_balance >= balance[t];
-
-# subject to max_selector {t in Teams}:
-#     max_balance <= balance[t] + (2 * periods) * (1 - b_max[t]);
-
-
-# subject to only_one_b_min:
-#     sum {t in Teams} b_min[t] = 1;
-
-# subject to min_balance_is_lower {t in Teams}:
-#     min_balance <= balance[t];
-
-# subject to min_selector {t in Teams}:
-#     min_balance >= balance[t] - (2 * periods) * (1 - b_min[t]);
-
-# minimize Unbalance:
-#     max_balance - min_balance - 2;
-
-
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------
 
 # a team does not play against itself in any week

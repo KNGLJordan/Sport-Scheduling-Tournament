@@ -35,28 +35,8 @@ var home_matrix {i in Teams, j in Teams} binary;
 
 # ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
 
-# ## OBJ 1: min max h_t
-# var home_matches {t in Teams} integer, >= 0, <= weeks;
-
-# subject to HomeMatchCalculation {t1 in Teams}:
-#     home_matches[t1] = sum{t2 in Teams} home_matrix[t1,t2];
-
-# var b_max {t in Teams} binary;
-# var max_home_matches integer, >= periods, <= weeks;
-
-# subject to OnlyOneMax:
-#     sum {t in Teams} b_max[t] = 1;
-
-# subject to MaxIsGreater {t in Teams}:
-#     max_home_matches >= home_matches[t];
-
-# subject to MaxSelector {t in Teams}:
-#     max_home_matches <= home_matches[t] + (2 * weeks) * (1 - b_max[t]);
-
-# minimize Unbalance:
-#     max_home_matches;
-
-## OBJ 2: min max |d_t| = min max |2 * h_t - WEEKS|
+## OBJ: minimize the max inbalance, namely
+#       min max |d_t| = min max |2 * h_t - WEEKS|
 var balance {t in Teams} integer, >= -weeks, <= weeks;
 
 subject to BalanceCalculation {t1 in Teams}:

@@ -35,65 +35,45 @@ var home_matrix {i in Teams, j in Teams} binary;
 
 # ---------------------- OBJECTIVE FUNCTION ---------------------------------------------------------------
 
-## OBJ 1: min max h_t
-var home_matches {t in Teams} integer, >= 0, <= weeks;
+## OBJ: minimize the max inbalance, namely
+#       min max |d_t| = min max |2 * h_t - WEEKS|
+var balance {t in Teams} integer, >= -weeks, <= weeks;
 
-subject to HomeMatchCalculation {t1 in Teams}:
-    home_matches[t1] = sum{t2 in Teams} home_matrix[t1,t2];
+subject to BalanceCalculation {t1 in Teams}:
+    balance[t1] = 2 * sum {t2 in Teams} home_matrix[t1,t2] - weeks;
+
+var abs_balance {t in Teams} integer, >= 0, <= weeks;
+var b_abs {t in Teams} binary;
+
+# abs of balances
+# abs_balance[t] = |balance[t]| = max{balance[t], -balance[t]}
+subject to GreaterX {t in Teams}:
+    abs_balance[t] >= balance[t];
+
+subject to GreaterNegativeX {t in Teams}:
+    abs_balance[t] >= -balance[t];
+
+subject to XSelector {t in Teams}:
+    abs_balance[t] <= balance[t] + (2 * weeks) * (1 - b_abs[t]);
+
+subject to NegativeXSelector {t in Teams}:
+    abs_balance[t] <= -balance[t] + (2 * weeks) * b_abs[t];
+
 
 var b_max {t in Teams} binary;
-var max_home_matches integer, >= periods, <= weeks;
+var max_abs_balance integer, >= 1, <= weeks;
 
 subject to OnlyOneMax:
     sum {t in Teams} b_max[t] = 1;
 
 subject to MaxIsGreater {t in Teams}:
-    max_home_matches >= home_matches[t];
+    max_abs_balance >= balance[t];
 
 subject to MaxSelector {t in Teams}:
-    max_home_matches <= home_matches[t] + (2 * weeks) * (1 - b_max[t]);
+    max_abs_balance <= balance[t] + (2 * weeks) * (1 - b_max[t]);
 
 minimize Unbalance:
-    max_home_matches;
-
-# ## OBJ 2: min max |d_t| = min max |2 * h_t - WEEKS|
-# var balance {t in Teams} integer, >= -weeks, <= weeks;
-
-# subject to BalanceCalculation {t1 in Teams}:
-#     balance[t1] = 2 * sum {t2 in Teams} home_matrix[t1,t2] - weeks;
-
-# var abs_balance {t in Teams} integer, >= 0, <= weeks;
-# var b_abs {t in Teams} binary;
-
-# # abs of balances
-# # abs_balance[t] = |balance[t]| = max{balance[t], -balance[t]}
-# subject to GreaterX {t in Teams}:
-#     abs_balance[t] >= balance[t];
-
-# subject to GreaterNegativeX {t in Teams}:
-#     abs_balance[t] >= -balance[t];
-
-# subject to XSelector {t in Teams}:
-#     abs_balance[t] <= balance[t] + (2 * weeks) * (1 - b_abs[t]);
-
-# subject to NegativeXSelector {t in Teams}:
-#     abs_balance[t] <= -balance[t] + (2 * weeks) * b_abs[t];
-
-
-# var b_max {t in Teams} binary;
-# var max_abs_balance integer, >= 1, <= weeks;
-
-# subject to OnlyOneMax:
-#     sum {t in Teams} b_max[t] = 1;
-
-# subject to MaxIsGreater {t in Teams}:
-#     max_abs_balance >= balance[t];
-
-# subject to MaxSelector {t in Teams}:
-#     max_abs_balance <= balance[t] + (2 * weeks) * (1 - b_max[t]);
-
-# minimize Unbalance:
-#     max_abs_balance;
+    max_abs_balance;
 
 
 # ---------------------- DIAGONALS TO ZERO ----------------------------------------------------------------

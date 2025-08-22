@@ -11,7 +11,7 @@ SEED = 63
 
 # ------------------------------- SOLVERS -----------------------------------------
 
-solver_dict = {
+SOLVER_DICT = {
     'gurobi': {
         'solver': 'gurobi',
         'option_key': 'gurobi_options',
@@ -38,7 +38,7 @@ solver_dict = {
     }
 }
 
-solver_keys = [
+SOLVER_KEYS = [
     'gurobi',
     'cbc',
     'cplex',
@@ -46,17 +46,13 @@ solver_keys = [
 ]
 
 # ------------------------------- MODELS ----------------------------------
-models_folder = 'models/'
+MODELS_FOLDER = 'models/'
 
-models = [
-    # 'shark_mip_noHAmat.mod',
-    # 'shark_mip.mod',
-    # 'shark_mip_opt.mod',
-    # 'shark_mip_opt_2.mod',
-    'shark_mip_opt_3.mod',
-    'shark_mip_opt_3_imp.mod',
-    # 'monkey_mip.mod',
-    # 'monkey_mip_opt.mod',
+MODELS = [
+    'shark_mip.mod',
+    'shark_mip_imp.mod',
+    'shark_mip_opt.mod',
+    'shark_mip_opt_imp.mod',
 ]
 
 # ------------------------------- SOLVE FUNCTIONS ----------------------------------
@@ -94,7 +90,8 @@ def write_json(model_name:str,
 
 def produce_json(n_values:list, 
                  models:list,
-                 folder:str = "../../res/MIP/"):
+                 folder:str,
+                 print_solution:bool):
 
      # Create AMPL instance
     ampl = AMPL()
@@ -105,26 +102,26 @@ def produce_json(n_values:list,
 
         print(f'\n\n --- N={n} ---\n')
 
-        for s_key in solver_keys:
+        for s_key in SOLVER_KEYS:
 
             opt_str = (
-                f"{solver_dict[s_key]['seed_param']}{SEED} "
+                f"{SOLVER_DICT[s_key]['seed_param']}{SEED} "
             )
-            opt_str += f"{solver_dict[s_key]['time_param']}{TIME_LIMIT} "
+            opt_str += f"{SOLVER_DICT[s_key]['time_param']}{TIME_LIMIT} "
 
             for model in models:
 
-                print(f'\tSolving {model}, solver={s_key}...\n')
+                print(f'\tSolving {model}, solver={s_key}...')
 
                 time, optimal, obj, sol = solve_mip(ampl=ampl,
-                                                    model_filename=os.path.join(models_folder, model),
-                                                    solver=solver_dict[s_key]['solver'],
+                                                    model_filename=os.path.join(MODELS_FOLDER, model),
+                                                    solver=SOLVER_DICT[s_key]['solver'],
                                                     n=n,
-                                                    option_key=solver_dict[s_key]['option_key'],
+                                                    option_key=SOLVER_DICT[s_key]['option_key'],
                                                     option_value=opt_str,
                                                     time_limit=TIME_LIMIT,
                                                     objective="Unbalance",
-                                                    print_solution=False)
+                                                    print_solution=print_solution)
                 
                 if sol:
 
@@ -157,6 +154,8 @@ def produce_json(n_values:list,
                                 obj=None,
                                 sol=None,
                                 folder=folder)
+                    
+                print()
         
         print(f'\tFinished solving for N={n}. Results in res/MIP/{n}.json\n')
 
@@ -168,19 +167,20 @@ def produce_json(n_values:list,
 
 # ---------------------------------- MAIN  -----------------------------------
 
-def main(initial_n:int, final_n:int, model:str):
+def main(initial_n:int, final_n:int, model:str, print_solution:bool):
 
     n_values = range(initial_n, final_n + 1, 2)
 
     if model != "":
-        if model in models:
+        if model in MODELS:
             main_models = [model]
     else:
-        main_models = models
+        main_models = MODELS
 
     produce_json(n_values=n_values,
                  models=main_models,
-                 folder="../../res/MIP/")
+                 folder="../../res/MIP/",
+                 print_solution=print_solution)
 
 
 if __name__ == '__main__':
@@ -189,6 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--initial_n', type=int, default=2, help='Initial value of n (even integer)')
     parser.add_argument('--final_n', type=int, default=18, help='Final value of n (even integer)')
     parser.add_argument('--modelname', type=str, default="", help='Model file name (optional)')
+    parser.add_argument('--debug', type=bool, default=False, help='Print solutions (optional)')
     args = parser.parse_args()
 
-    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n)
+    main(model=args.modelname, initial_n=args.initial_n, final_n=args.final_n, print_solution=args.debug)

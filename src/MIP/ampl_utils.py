@@ -315,10 +315,12 @@ def solve_mip(ampl: AMPL,
         objective_val = round(ampl.get_objective(objective).value())
         optimization = True
     except Exception as e:
-        print("No optimization.")
+        optimization = False
+        # print("\t\tNo optimization.")
 
     # Status
     if (ampl.getValue('solve_result') == 'failure') or (ampl.getValue('solve_result') == 'infeasible') or (optimization and (objective_val < 0)):
+        print("\t\tSolution unfeasible.")
         return elapsed, False, None, None
 
     HM_mat_present = True
@@ -344,12 +346,14 @@ def solve_mip(ampl: AMPL,
                                  home_matrix_name='home_matrix',
                                  HM_mat_present=HM_mat_present)
     else:
-        print("Unknown model type. Cannot get solution.")
+        print("\t\tUnknown model type. Cannot get solution.")
         sol = None
     
     if not all(sol):
         sol = None
-        print("No solution found or solution is empty.")
+        print("\t\tNo solution found or solution is empty.")
+    else:
+        print(f"\t\tSolution found in {elapsed:.1f}s.")
 
     # Print solution if required
     if sol and print_solution:
