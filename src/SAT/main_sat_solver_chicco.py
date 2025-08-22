@@ -13,7 +13,7 @@ import sys
 import argparse
 
 
-use_multiprocess= 1
+use_multiprocess = 1
 use_new_optimization_function = 1
 if use_multiprocess:
     if use_new_optimization_function:
@@ -23,9 +23,13 @@ if use_multiprocess:
 else:
     sports_scheduling = sports_scheduling_sat
 
-theGreatest=1
+theGreatest = 1
 if theGreatest:
     sports_scheduling = sports_scheduling_sat_goat
+
+chicco = 1
+if chicco:
+    sports_scheduling = sports_scheduling_sat_chicco
 
 
 models = {
@@ -39,7 +43,7 @@ def save_result(n, model_name, result, optimize, folder="/home/lucazini03/Deskto
     elapsed, optimal, obj, schedule = result
 
     # Ensure obj is the string 'None' if it is None
-    obj_to_save = str(obj) if obj is None else obj
+    obj_to_save = str(obj) if obj is not None else 'None'
 
     if schedule is None:
         print(f"\t[!] No solution for n={n}, model={model_name}. Time: {elapsed:.2f} seconds")
@@ -117,7 +121,7 @@ def main(n_start, n_end, selected_model, optimize, save_res):
                     away_count = sum(1 for w in range(weeks) for p in range(len(schedule)) if schedule[p][w] and schedule[p][w][1] == t + 1)
                     print(f"Team {t + 1}: Home {home_count}, Away {away_count}")
                 if optimize:
-                    print(f"Objective function score: {obj} (ideally should be 1)\n")
+                    print(f"Objective function score: {obj} (ideal = {n//2})\n")
             else:
                 print("\tNo solution found.")
             if save_res:

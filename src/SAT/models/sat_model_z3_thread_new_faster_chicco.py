@@ -48,7 +48,7 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
         elif encoding == 'bw':
             exactly_one = exactly_one_bw
 
-    def build_solver(min_home=None, max_home=None):
+    def build_solver(max_home=None):
         s = Solver()
         s.set("random_seed", 42)
 
@@ -77,11 +77,11 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
                 games = [home[t, w, p] for w in range(weeks)] + [away[t, w, p] for w in range(weeks)]
                 s.add(at_most_k(games, 2, name=f"team_{t}_period_{p}"))
 
-        if optimize and (min_home is not None and max_home is not None):
+        if optimize and max_home is not None:
             for t in teams:
                 home_games = [home[t, w, p] for w in range(weeks) for p in range(periods)]
-                s.add(at_least_k(home_games, min_home, name=f"min_home_{t}"))
                 s.add(at_most_k(home_games, max_home, name=f"max_home_{t}"))
+                s.add(at_least_k(home_games, weeks-max_home, name=f"min_home_{t}"))
 
         return s
 
@@ -95,26 +95,22 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
 
         m = s.model()
         sched = extract_schedule(m, home, away, teams, weeks, periods)
-        imbalances = []
+        home_counts = []
         for t in teams:
             home_games = sum(
                 1 for w in range(weeks) for p in range(periods)
                 if is_true(m.evaluate(home[t, w, p], model_completion=True))
             )
-            away_games = sum(
-                1 for w in range(weeks) for p in range(periods)
-                if is_true(m.evaluate(away[t, w, p], model_completion=True))
-            )
-            imbalances.append(home_games - away_games)
+            home_counts.append(home_games)
 
-        obj = max(abs(x) for x in imbalances)
-        optimal = (obj == 1 and elapsed < timeout) or (not optimize)
+        max_home = max(home_counts)
+        optimal = (max_home == ceil(weeks/2) and elapsed < timeout) or (not optimize)
 
         if not optimize:
             queue.put((elapsed, optimal, None, sched))
             return True
         else:
-            queue.put((elapsed, optimal, obj, sched))
+            queue.put((elapsed, optimal, max_home, sched))
         return True
     
     if n <= 4 and optimize:
@@ -122,54 +118,50 @@ def _sat_worker(queue, n, timeout, optimize, encoding):
         return
 
     elif optimize:
-        min_obj = 1
-        max_obj = n - 1
+        # Binary search to minimize the maximum home games
+        # For n=6: weeks=5, ideal max_home = ceil(5/2) = 3
+        min_obj = periods  # Lower bound: ideal maximum home games
+        max_obj = weeks      # Upper bound: maximum possible home games
 
         best_model = None
         best_obj = None
         best_sched = None
 
-        while min_obj < max_obj:
+        while min_obj <= max_obj:
             mid = (min_obj + max_obj) // 2
 
-            #the objective function can only assume odd values.
-                #for example, if n=6, a team can play h/a = 2/3, 3/2, 4/1, 1/4, 5/0, 0/5. The difference is always odd.
-            if mid % 2 == 0:
-                mid -= 1 #IF IT IS TOO SLOW, CHANGE TO mid-=1
+            print(f"\nTrying maximum home games: {mid}")
 
-            min_home = (weeks - mid) // 2
-            max_home = (weeks + mid) // 2
-
-            print(f"\nTrying objective value: {mid}  (min_home={min_home}, max_home={max_home})")
-
-            s = build_solver(min_home, max_home)
+            s = build_solver(mid)
             res = s.check()
 
             if res == sat:
                 best_model = s.model()
                 best_sched = extract_schedule(best_model, home, away, teams, weeks, periods)
-                imbalances = []
+                home_counts = []
                 for t in teams:
                     home_games = sum(
                         1 for w in range(weeks) for p in range(periods)
-                        if is_true(best_model.evaluate(home[t, w, p], model_completion=True))
+                            if is_true(best_model.evaluate(home[t, w, p], model_completion=True))
                     )
-                    away_games = sum(
-                        1 for w in range(weeks) for p in range(periods)
-                        if is_true(best_model.evaluate(away[t, w, p], model_completion=True))
-                    )
-                    imbalances.append(home_games - away_games)
-                best_obj = max(abs(x) for x in imbalances)
+                    home_counts.append(home_games)
+                best_obj = max(home_counts)
+                
+                # Found a solution with max_home = mid, try to find a better one
                 max_obj = mid - 1
+                print(f"Found solution with max_home = {best_obj}")
             else:
+                # No solution with max_home = mid, try a higher value
                 min_obj = mid + 1
+                print(f"No solution with max_home = {mid}")
 
         elapsed = time.time() - start_time
         if best_model is None:
             queue.put((elapsed, False, None, None))
             return
 
-        optimal = (best_obj == 1 and elapsed < timeout)
+        # Check if we found the optimal solution (max_home = ideal_max)
+        optimal = (best_obj == min_obj and elapsed < timeout)
         queue.put((elapsed, optimal, best_obj, best_sched))
 
     else:
