@@ -1,23 +1,47 @@
 {
-    "sat_z3_binsearch_heule": {
+    "sat_z3_binsearch_seq OPTIMIZE": {
         "time": 0,
         "optimal": false,
         "obj": "None",
         "sol": []
     },
-    "sat_z3_binsearch_seq": {
+    "sat_z3_binsearch_seq DECISION PROBLEM": {
         "time": 0,
         "optimal": false,
         "obj": "None",
         "sol": []
     },
-    "sat_z3_binsearch_np": {
+    "sat_z3_binsearch_heule OPTIMIZE": {
         "time": 0,
         "optimal": false,
         "obj": "None",
         "sol": []
     },
-    "sat_z3_binseach_bw": {
+    "sat_z3_binsearch_np OPTIMIZE": {
+        "time": 0,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "sat_z3_binseach_bw OPTIMIZE": {
+        "time": 0,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "sat_z3_binsearch_heule DECISION PROBLEM": {
+        "time": 0,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "sat_z3_binsearch_np DECISION PROBLEM": {
+        "time": 0,
+        "optimal": false,
+        "obj": "None",
+        "sol": []
+    },
+    "sat_z3_binseach_bw DECISION PROBLEM": {
         "time": 0,
         "optimal": false,
         "obj": "None",

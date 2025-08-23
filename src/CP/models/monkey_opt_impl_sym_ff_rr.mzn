@@ -79,6 +79,6 @@ constraint
 
 solve 
 ::int_search(matches, first_fail, indomain_min)
+%first fail + indomain_min means that the search will try to assign the smallest possible value to the first variable that is not yet assigned, and then it will try to assign the next variable in the order of the search strategy.
 ::relax_and_reconstruct([home_matrix[i,j] | i in 1..weeks, j in 1..n], 85)
-% minimize abs(unbalance_score);
-satisfy;
+minimize abs(unbalance_score);

@@ -1,26 +1,106 @@
 {
-    "sat_z3_binsearch_heule": {
+    "sat_z3_binsearch_seq OPTIMIZE": {
         "time": 0,
-        "optimal": false,
-        "obj": "None",
-        "sol": []
+        "optimal": true,
+        "obj": "1",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
     },
-    "sat_z3_binsearch_seq": {
+    "sat_z3_binsearch_seq DECISION PROBLEM": {
         "time": 0,
-        "optimal": false,
+        "optimal": true,
         "obj": "None",
-        "sol": []
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
     },
-    "sat_z3_binsearch_np": {
+    "sat_z3_binsearch_heule OPTIMIZE": {
         "time": 0,
-        "optimal": false,
-        "obj": "None",
-        "sol": []
+        "optimal": true,
+        "obj": "1",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
     },
-    "sat_z3_binseach_bw": {
+    "sat_z3_binsearch_np OPTIMIZE": {
         "time": 0,
-        "optimal": false,
+        "optimal": true,
+        "obj": "1",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    "sat_z3_binseach_bw OPTIMIZE": {
+        "time": 0,
+        "optimal": true,
+        "obj": "1",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    "sat_z3_binsearch_heule DECISION PROBLEM": {
+        "time": 0,
+        "optimal": true,
         "obj": "None",
-        "sol": []
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    "sat_z3_binsearch_np DECISION PROBLEM": {
+        "time": 0,
+        "optimal": true,
+        "obj": "None",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
+    },
+    "sat_z3_binseach_bw DECISION PROBLEM": {
+        "time": 0,
+        "optimal": true,
+        "obj": "None",
+        "sol": [
+            [
+                [
+                    2,
+                    1
+                ]
+            ]
+        ]
     }
 }

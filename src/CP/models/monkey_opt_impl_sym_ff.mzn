@@ -75,47 +75,4 @@ constraint
 
 solve
 ::int_search(matches, first_fail, indomain_min)
-%minimize abs(unbalance_score);
-satisfy;
-
-output [
-  "              " ++ concat([ "Week " ++ show(w) ++ "        " | w in 1..weeks ]) ++ "\n",
-  "           " ++ concat([ "-" | i in 1..weeks * 14 ]) ++ "\n"
-] ++
-[
-  "Period " ++ show(p) ++ ": |" ++
-  concat([
-    let {
-      array[int] of int: idxs = [i | i in 1..n where fix(periods_matrix[w,i]) == p]
-    } in
-    if length(idxs) == 2 then
-      if fix(home_matrix[w, idxs[1]]) = 1 then
-        "    " ++ show(idxs[1]) ++ " v " ++ show(fix(matches[w,idxs[1]])) ++ "    |"
-      else 
-        "    " ++ show(idxs[2]) ++ " v " ++ show(fix(matches[w,idxs[2]])) ++ "    |"
-      endif
-    else
-      "              |"
-    endif
-    | w in 1..weeks
-  ]) ++ "\n" ++
-  "           " ++ concat([ "-" | i in 1..weeks * 14 ]) ++ "\n"
-  | p in 1..periods
-] 
-++ 
-["\nMax number of matches played by a team in home: " ++ show(fix(max(home_balance))) ++ " (min 1)\nOur unbalance score: " ++ show(fix(unbalance_score)) ++ " (min 0)\n"
-
-%   % ----------- For Debug ----------- %
-%   ] ++ [
-%   % ----------- Matches matrix (w x n) ----------- %
-%   "\n\nWeeks Matrix:\n" ++
-%   concat([ concat([ show(fix(matches[i,j])) ++ " " | j in 1..n ]) ++ "\n" | i in 1..weeks ]) ++
-
-%   % ----------- Periods matrix (w x n) ----------- %
-%   "\nPeriods Matrix:\n" ++
-%   concat([ concat([ show(fix(periods_matrix[i,j])) ++ " " | j in 1..n ]) ++ "\n" | i in 1..weeks ]) ++
-  
-%   % ----------- Home matrix (w x n) ----------- %
-%   "\nHome Matrix:\n" ++
-%   concat([ concat([ show(fix(home_matrix[i,j])) ++ " " | j in 1..n ]) ++ "\n" | i in 1..weeks ])
-];
+minimize abs(unbalance_score);

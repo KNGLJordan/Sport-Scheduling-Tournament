@@ -139,8 +139,10 @@ subject to HomeAwaySymmetry{t1 in Teams, t2 in Teams: t1 != t2}:
 # -------------------- SAME WEEK => DIFFERENT PERIOD --------------------------------------------------------
 
 # creating the channeling between weeks and periods
+#z_enc acts as a channeling variable to link the two assignments, allowing you to write constraints that depend on both.
 
 var z_enc{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2} binary;
+# z_enc[t1, t2, w, p] = 1 if and only if the match between teams t1 and t2 is scheduled in week w and period p.
 
 # encoding of the AND relation 
 
@@ -150,12 +152,17 @@ var z_enc{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2} bin
 
 subject to LinkZ1{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
     z_enc[t1,t2,w,p] <= w_enc[t1,t2,w];
+    #If the match is not scheduled in week w, then z_enc must be 0.
 
 subject to LinkZ2{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
     z_enc[t1,t2,w,p] <= p_enc[t1,t2,p];
+    #If the match is not scheduled in period p, then z_enc must be 0.
 
 subject to LinkZ3{t1 in Teams, t2 in Teams, w in WeekVals, p in PeriodVals: t1 < t2}:
     w_enc[t1,t2,w] + p_enc[t1,t2,p] <= z_enc[t1,t2,w,p] + 1;
+    #     This ensures that if both w_enc and p_enc are 1, then z_enc must be 1.
+    # If both are 1:
+    # 1 + 1 <= z_enc + 1 ⇒ 2 <= z_enc + 1 ⇒ z_enc >= 1 ⇒ z_enc = 1 (since it's binary).
 
 # all the matches played in the same week have to be in different periods
 

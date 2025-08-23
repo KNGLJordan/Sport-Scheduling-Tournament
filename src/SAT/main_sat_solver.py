@@ -124,19 +124,26 @@ def main(n_start, n_end, selected_model, optimize, save_res):
                 save_result(n, model_name, (elapsed, optimal, obj if optimize else 'None', schedule), optimize, timeout=timeout)
     print("All models completed.")
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run SAT sports scheduling models.")
     parser.add_argument('--initial_n', type=int, default=2, help='Initial number of teams (even)')
     parser.add_argument('--final_n', type=int, default=16, help='Final number of teams (even, exclusive)')
     parser.add_argument('--modelname', type=str, default=None, help='Model name: heule, sequential, naive, binary')
-    parser.add_argument('--optimize', action='store_true', help='Enable optimization')
-    parser.add_argument('--no-optimize', dest='optimize', action='store_false', help='Disable optimization')
-    parser.set_defaults(optimize=True)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--optimize', action='store_true', help='Enable optimization')
+    group.add_argument('--no-optimize', dest='optimize', action='store_false', help='Disable optimization')
+    group.set_defaults(optimize=None)  # <-- THIS LINE IS IMPORTANT
     parser.add_argument('--save_res', action='store_true', help='Save results to JSON files (default: True)')
     parser.add_argument('--no-save', dest='save_res', action='store_false', help='Disable saving results')
     parser.set_defaults(save_res=True)
     args = parser.parse_args()
 
-    main(args.initial_n, args.final_n, args.modelname, args.optimize, args.save_res)
+    # If neither --optimize nor --no-optimize is specified, run both
+    if args.optimize is None:
+        print("== Running with optimize=True ==")
+        main(args.initial_n, args.final_n, args.modelname, True, args.save_res)
+        print("== Running with optimize=False ==")
+        main(args.initial_n, args.final_n, args.modelname, False, args.save_res)
+    else:
+        main(args.initial_n, args.final_n, args.modelname, args.optimize, args.save_res)
