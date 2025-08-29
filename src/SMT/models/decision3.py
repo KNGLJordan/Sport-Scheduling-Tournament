@@ -8,20 +8,28 @@ def get_solution(n: int, model):
     """
     weeks = n - 1
     periods = n // 2
-    matches = [(i, j) for i in range(n) for j in range(i+1, n)]
+    matches = [(i, j) for i in range(n) for j in range(n) if i!=j] #rectangle instead of triangle
 
     # Ricostruisco le variabili come in solve_instance
     M = {(t1, t2): Int(f"M_{t1}_{t2}") for (t1, t2) in matches}
     P = {(t1, t2): Int(f"P_{t1}_{t2}") for (t1, t2) in matches}
+    H = {(t1, t2): Bool(f"H_{t1}_{t2}") for (t1, t2) in matches} #home team
 
     # Struttura della soluzione: periods × weeks
     solution = [[None for _ in range(weeks)] for _ in range(periods)]
 
+    # print(model[M[(t1, t2)]].as_long() for (t1, t2) in matches)
+
     for (t1, t2) in matches:
         w = model[M[(t1, t2)]].as_long()
         p = model[P[(t1, t2)]].as_long()
-        solution[p][w] = [t1 + 1, t2 + 1]  # squadre numerate da 1
+        h = is_true(model[H[(t1, t2)]])
 
+        if h:
+            solution[p][w] = [t1 + 1, t2 + 1]
+
+   # print(solution)
+    
     return solution
 
 def solve_instance(n: int, 
@@ -34,38 +42,57 @@ def solve_instance(n: int,
     weeks = n - 1
     periods = n // 2
 
-    matches = [(i, j) for i in range(n) for j in range(i+1, n)]
+    matches = [(i, j) for i in range(n) for j in range(n) if i!=j] #rectangle instead of triangle
 
     M = {(t1, t2): Int(f"M_{t1}_{t2}") for (t1, t2) in matches}
     P = {(t1, t2): Int(f"P_{t1}_{t2}") for (t1, t2) in matches}
+    H = {(t1, t2): Bool(f"H_{t1}_{t2}") for (t1, t2) in matches} #home team
+
 
     s = Solver()
     for (t1, t2) in matches:
         s.add(M[(t1, t2)] >= 0, M[(t1, t2)] < weeks)
         s.add(P[(t1, t2)] >= 0, P[(t1, t2)] < periods)
-    #define the values that the Weeks matrix and the Periods matrix can assume (between 0 and weeks-1 or periods-1)
+    #define the values that the Weeks matrix and the Periods matrix and Home martix can assume (between 0 and weeks-1 or periods-1 or 0 and 1)
+
+    # 0. M[i,j] must be equal to M[j,i] and P[i,j] must be equal to P[j,i] and H[i,j] must be Not(H[j,i])
+    for (t1, t2) in matches:
+        s.add(M[(t1, t2)] == M[(t2, t1)])
+        s.add(P[(t1, t2)] == P[(t2, t1)])
+        s.add(H[(t1, t2)] == Not(H[(t2, t1)]))
 
     # 1. Every team plays once a week
     for team in range(n):
         for w in range(weeks):
             s.add(Sum([If(M[(t1, t2)] == w, 1, 0)
-                    for (t1, t2) in matches if team in (t1, t2)]) == 1)
+                    for (t1, t2) in matches if team in (t1, t2) and t1<t2]) == 1) #2 instead of 1 because in the matrix there will be both (i,j) and (j,i)
+
+    # from itertools import combinations
+    # pairs = list(combinations(range(n), 2))
+    # pairs_by_team = {t: [p for p in pairs if t in p] for t in range(n)}
+
+    # for team in range(n):
+    #     team_pairs = pairs_by_team[team]
+    #     # domain already restricted to 0..weeks-1 elsewhere
+    #     s.add(Distinct([M[p] for p in team_pairs]))
+
+    
 
     # 2. Every week have exactly periods match
     for w in range(weeks):
-        s.add(Sum([If(M[(t1, t2)] == w, 1, 0) for (t1, t2) in matches]) == periods)
+        s.add(Sum([If(M[(t1, t2)] == w, 1, 0) for (t1, t2) in matches if t1<t2]) == periods)
 
     # 3. Every week and period have exactly one match
     for w in range(weeks):
         for p in range(periods):
             s.add(Sum([If(And(M[(t1, t2)] == w, P[(t1, t2)] == p), 1, 0)
-                    for (t1, t2) in matches]) == 1)
+                    for (t1, t2) in matches if t1<t2]) == 1)
 
     # 4. Every team can have a match in the same period at most two times
     for team in range(n):
         for p in range(periods):
             s.add(Sum([If(P[(t1, t2)] == p, 1, 0)
-                    for (t1, t2) in matches if team in (t1, t2)]) <= 2)
+                    for (t1, t2) in matches if team in (t1, t2) and t1<t2]) <= 2)
             
     # IMPLIED & SYMMETRY BREAKING
     # ...
