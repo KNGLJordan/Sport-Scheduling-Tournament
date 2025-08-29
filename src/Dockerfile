@@ -17,6 +17,7 @@ RUN apt update && apt install -y \
     python3 python3-pip wget unzip curl tar \
     libglu1-mesa-dev libegl1 \
     libfontconfig1 \
+    libgpg-error0 \
     dos2unix \
  && apt clean
 

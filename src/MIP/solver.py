@@ -160,7 +160,7 @@ def produce_json(n_values:list,
                     
                 print()
         
-        print(f'\tFinished solving for N={n}. Results in res/MIP/{n}.json\n')
+        print(f'\tFinished solving for N={n}. Results in {folder}{n}.json\n')
 
     if errors > 0:
         print(f"\nTotal errors: {errors}\n")
