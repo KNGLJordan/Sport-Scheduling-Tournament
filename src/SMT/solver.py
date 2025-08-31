@@ -14,11 +14,13 @@ SEED = 63
 MODELS_FOLDER = "models/"
 
 DEC_MODELS = [
-    "decision1",
+    'decision1',
+    'decision2',
+    'decision3'
 ]
 
 OPT_MODELS = [
-    # "",
+    "optimization3",
 ]
 
 def write_json(model_name: str, 

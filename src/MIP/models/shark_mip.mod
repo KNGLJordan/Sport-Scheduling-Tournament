@@ -8,7 +8,7 @@ set WeekVals := 0..weeks;
 set PeriodVals := 0..periods;
 
 # unary encoding for weeks_matrix
-var w_enc{i in Teams, j in Teams, w in WeekVals} binary; # binary or integer??? TO-THINK
+var w_enc{i in Teams, j in Teams, w in WeekVals} binary; 
 var weeks_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotWeek{i in Teams, j in Teams}:
@@ -18,7 +18,7 @@ subject to EncodeWeek{i in Teams, j in Teams}:
     weeks_matrix[i,j] = sum{w in WeekVals} w * w_enc[i,j,w];
 
 # unary encoding for periods_matrix
-var p_enc{i in Teams, j in Teams, p in PeriodVals} binary; # binary or integer??? TO-THINK
+var p_enc{i in Teams, j in Teams, p in PeriodVals} binary;
 var periods_matrix{i in Teams, j in Teams} integer;
 
 subject to OneHotPeriod{i in Teams, j in Teams}:
