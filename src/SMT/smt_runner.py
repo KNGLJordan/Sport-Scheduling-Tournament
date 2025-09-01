@@ -60,7 +60,7 @@ class Z3Solver(SMTSolver):
         if "unsat" in output:
             return {"status": "unsat"}
         elif "sat" not in output:
-            return {"status": "unknown"}
+            return {f"status": "{output}]"}
         
         model["status"] = "sat"
         
@@ -104,7 +104,7 @@ class CVC5Solver(SMTSolver):
         if "unsat" in output:
             return {"status": "unsat"}
         elif "sat" not in output:
-            return {"status": "unknown"}
+            return {"status": f"{output}"}
         
         model["status"] = "sat"
         
@@ -170,7 +170,7 @@ class Yices2Solver(SMTSolver):
         if "unsat" in output:
             return {"status": "unsat"}
         elif "sat" not in output:
-            return {"status": "unknown"}
+            return {"status": f"{output}"}
         
         model["status"] = "sat"
         
@@ -206,31 +206,3 @@ def get_solver(solver_name: str) -> Optional[SMTSolver]:
     if solver_name in AVAILABLE_SOLVERS:
         return AVAILABLE_SOLVERS[solver_name]()
     return None
-
-
-def check_solver_availability(solver_name: str) -> bool:
-    """Verifica se un solver è installato e disponibile"""
-    solver = get_solver(solver_name)
-    if not solver:
-        return False
-    
-    try:
-        # Prova ad eseguire il solver con --version o --help
-        test_cmd = solver.command.replace("{file}", "--version")
-        result = subprocess.run(
-            test_cmd.split(),
-            capture_output=True,
-            timeout=5
-        )
-        return result.returncode == 0 or result.returncode == 1
-    except:
-        return False
-
-
-def list_available_solvers() -> list:
-    """Ritorna la lista dei solver installati"""
-    available = []
-    for solver_name in AVAILABLE_SOLVERS:
-        if check_solver_availability(solver_name):
-            available.append(solver_name)
-    return available

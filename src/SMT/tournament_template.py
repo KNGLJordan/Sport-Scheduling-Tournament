@@ -1,6 +1,3 @@
-"""
-Template generator per creare modelli SMT-LIB parametrizzati per il problema del torneo
-"""
 
 def generate_decision1_smt(n: int, timeout_ms: int = 300000) -> str:
     """Genera il modello decision1 in formato SMT-LIB"""

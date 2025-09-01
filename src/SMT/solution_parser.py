@@ -1,6 +1,3 @@
-"""
-Parser per convertire i modelli SMT nel formato di soluzione richiesto
-"""
 
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -94,65 +91,3 @@ def extract_objective_value(model: Dict[str, Any], problem_type: str) -> Optiona
             return model["objective"]
     
     return None
-
-
-def verify_solution_consistency(solution: List[List[List[int]]], n: int) -> Tuple[bool, str]:
-    """
-    Verifica la consistenza base di una soluzione
-    
-    Returns:
-        (is_valid, error_message)
-    """
-    
-    weeks = n - 1
-    periods = n // 2
-    
-    if len(solution) != periods:
-        return False, f"Wrong number of periods: {len(solution)} instead of {periods}"
-    
-    for p_idx, period in enumerate(solution):
-        if len(period) != weeks:
-            return False, f"Wrong number of weeks in period {p_idx}: {len(period)} instead of {weeks}"
-        
-        for w_idx, match in enumerate(period):
-            if match is None:
-                return False, f"Missing match at period {p_idx}, week {w_idx}"
-            
-            if len(match) != 2:
-                return False, f"Invalid match format at period {p_idx}, week {w_idx}"
-            
-            t1, t2 = match
-            if not (1 <= t1 <= n and 1 <= t2 <= n and t1 != t2):
-                return False, f"Invalid teams in match at period {p_idx}, week {w_idx}: {match}"
-    
-    # Verifica che ogni squadra giochi una volta per settimana
-    for w in range(weeks):
-        teams_in_week = set()
-        for p in range(periods):
-            t1, t2 = solution[p][w]
-            if t1 in teams_in_week or t2 in teams_in_week:
-                return False, f"Team plays twice in week {w}"
-            teams_in_week.add(t1)
-            teams_in_week.add(t2)
-        
-        if len(teams_in_week) != n:
-            return False, f"Not all teams play in week {w}"
-    
-    return True, "Solution is consistent"
-
-
-def solution_to_dict(solution: List[List[List[int]]]) -> Dict:
-    """
-    Converte la soluzione in un dizionario serializzabile
-    """
-    if solution is None:
-        return {}
-    
-    result = {}
-    for p_idx, period in enumerate(solution):
-        for w_idx, match in enumerate(period):
-            if match:
-                key = f"P{p_idx+1}_W{w_idx+1}"
-                result[key] = match
-    
-    return result
