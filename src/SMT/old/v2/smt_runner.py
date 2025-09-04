@@ -60,7 +60,7 @@ class Z3Solver(SMTSolver):
         if "unsat" in output:
             return {"status": "unsat"}
         elif "sat" not in output:
-            return {f"status": "{output}]"}
+            return {f"status": f"{output}]"}
         
         model["status"] = "sat"
         

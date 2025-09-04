@@ -1,291 +1,385 @@
 import argparse
-import json
 import os
+import json
 import time
 from math import floor
-from typing import Dict, List, Tuple, Optional, Any
-import sys
-
-from tournament_template import (
-    generate_decision1_smt,
-    generate_decision3_smt,
-    generate_optimization3_smt,
-    save_smt_file
-)
-from smt_runner import get_solver
-from solution_parser import (
-    parse_tournament_solution,
-    extract_objective_value,
-)
+from smt_utils import run_smt_solver, parse_solution
 from solution_checker import check_solution
 
-
-TIME_LIMIT = 300
+TIME_LIMIT = 30
 SEED = 63
 
-SOLVER_KEYS = [
-    'z3',
-    'cvc5',
-    'yices2',
-]
-
-# ------------------------------- MODELS ----------------------------------
-
-MODEL_GENERATORS = {
-    'decision1': generate_decision1_smt,
-    'decision3': generate_decision3_smt,
-    'optimization3': generate_optimization3_smt,
+# SMT solvers configuration
+SOLVER_DICT = {
+    'z3': {
+        'command': 'z3',
+        'timeout_flag': '-T:',
+        'seed_flag': 'sat.random_seed=',
+        'model_flag': '',
+        'opt_flag': '',
+        'incremental': False
+    },
+    'cvc5': {
+        'command': 'cvc5',
+        'timeout_flag': '--tlimit=',
+        'seed_flag': '--seed=',
+        'model_flag': '--produce-models',
+        'opt_flag': '--produce-models',
+        'incremental': False
+    },
+    'mathsat': {
+        'command': 'mathsat',
+        'timeout_flag': '-timeout=',
+        'seed_flag': '-random_seed=',
+        'model_flag': '-model',
+        'opt_flag': '-opt.priority=box',
+        'incremental': False
+    },
+    'yices2': {
+        'command': 'yices-smt2',
+        'timeout_flag': '--timeout=',
+        'seed_flag': '--random-seed=',
+        'model_flag': '',
+        'opt_flag': '',
+        'incremental': False
+    }
 }
 
-DEC_MODELS = ['decision1', 'decision3']
-OPT_MODELS = ['optimization3']
+SOLVER_KEYS = [
+    'z3', 
+    'cvc5', 
+    'mathsat', 
+    'yices2'
+]
 
-# ------------------------------- SOLVE FUNCTIONS ----------------------------------
+# Models location
+MODELS_FOLDER = 'models/'
 
-def solve_with_smt(n: int, 
-                   model_name: str, 
-                   solver_name: str,
-                   time_limit: int = TIME_LIMIT,
-                   seed: int = SEED,
-                   save_smt: bool = False) -> Tuple[float, bool, Optional[int], Optional[Dict]]:
-    """
-    Risolve un'istanza usando SMT-LIB e un solver specifico
-    
-    Returns:
-        (elapsed_time, optimal, objective_value, solution)
-    """
-    
-    print(f"\t\tGenerating SMT-LIB for n={n}...")
-    
-    # Genera il contenuto SMT-LIB
-    if model_name not in MODEL_GENERATORS:
-        print(f"\t\t! Model {model_name} not supported")
-        return 0, False, None, None
-    
-    generator = MODEL_GENERATORS[model_name]
-    smt_content = generator(n, time_limit * 1000)  # timeout in millisecondi
-    
-    # Salva il file SMT se richiesto
-    if save_smt:
-        smt_filename = f"models_smt/{model_name}_n{n}.smt2"
-        os.makedirs(os.path.dirname(smt_filename), exist_ok=True)
-        save_smt_file(smt_content, smt_filename)
-        print(f"\t\tSaved SMT file to {smt_filename}")
-    
-    # Ottieni il solver
-    solver = get_solver(solver_name)
-    if not solver:
-        print(f"\t\t! Solver {solver_name} not available")
-        return 0, False, None, None
-    
-    print(f"\t\tRunning {solver_name}...")
-    
-    # Esegui il solver
-    output, elapsed, timed_out = solver.run(smt_content, time_limit)
-    
-    if timed_out:
-        print(f"\t\tTimeout reached after {elapsed:.1f}s")
-        return elapsed, False, None, None
-    
-    # Parsa il modello
-    model = solver.parse_model(output)
-    
-    if model.get("status") != "sat":
-        print(f"\t\tNo solution found (status: {model.get('status', 'unknown')})")
-        return elapsed, False, None, None
-    
-    # Converti in soluzione
-    solution = parse_tournament_solution(model, n, model_name)
-    
-    if solution is None:
-        print(f"\t\tFailed to parse solution")
-        return elapsed, False, None, None
-    
-    # Estrai valore obiettivo
-    obj = extract_objective_value(model, model_name)
-    
-    # Determina se è ottimale
-    optimal = True
-    if model_name in DEC_MODELS:
-        optimal = True  # Per problemi di decisione, SAT = ottimale
-    elif model_name == "optimization3" and obj is not None:
-        optimal = (obj == 1)  # Ottimale se il bilanciamento è 1
-    
-    print(f"\t\tSolution found in {elapsed:.1f}s (obj: {obj})")
-    
-    return elapsed, optimal, obj, solution
+DEC_MODELS = [
+    'decision_smt'
+]
 
+OPT_MODELS = [
+    'optimization_smt'
+]
 
-def write_json(model_name: str, 
-               solver_name: str,
-               n: int, 
-               elapsed: float, 
-               optimal: bool, 
-               obj: float, 
+def write_json(model_name: str,
+               solver: str,
+               n: int,
+               time: float,
+               optimal: bool,
+               obj: float,
                sol: dict,
                folder: str = "../../res/SMT/"):
     
-    key = f"{model_name}_{solver_name}"
-    
+    key = f"{model_name}_{solver}"
     data = {
         key: {
-            "time": floor(elapsed),
-            "optimal": optimal,
-            "obj": int(obj) if obj is not None else "None",
-            "sol": sol if sol else []
+            'time': floor(time),
+            'optimal': optimal,
+            'obj': int(obj) if obj is not None else "None",
+            'sol': sol if sol else []
         }
     }
     
+    # Create directory if it doesn't exist
     filename = os.path.join(os.getcwd(), f"{folder}{n}.json")
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     
+    # Load existing data or create new
     try:
-        with open(filename, "r") as f:
+        with open(filename, 'r') as f:
             existing = json.load(f)
     except FileNotFoundError:
         existing = {}
     
     existing.update(data)
     
-    with open(filename, "w") as f:
+    with open(filename, 'w') as f:
         json.dump(existing, f, indent=4)
 
+def solve_with_smtlib(model_name: str,
+                      solver_key: str,
+                      n: int,
+                      time_limit: int,
+                      seed: int,
+                      print_solution: bool = False):
+    """
+    Solve instance using SMT-lib format
+    """
+    # Import the model generator
+    if model_name == 'decision_smt':
+        from models.decision_smt import generate_smtlib
+        is_optimization = False
+    elif model_name == 'optimization_smt':
+        from models.optimization_smt import generate_smtlib
+        is_optimization = True
+    else:
+        raise ValueError(f"Unknown model: {model_name}")
+    
+    # Generate SMT-lib content
+    smtlib_content = generate_smtlib(n)
+    
+    # Get solver configuration
+    solver_config = SOLVER_DICT[solver_key]
+    
+    # Special handling: binary search for solvers that don't support optimization
+    if is_optimization and solver_key in ['cvc5', 'yices2']:
+        # We'll do integer binary search on max_abs_balance in range [0, weeks]
+        weeks = n - 1
+        low = 0
+        high = weeks
+        last_sat_model = None
+        last_sat_bound = None
+        
+        # Remove any explicit minimize directive to avoid solver errors
+        smtlib_no_min = smtlib_content.replace('(minimize max_abs_balance)', '')
+        
+        start_time = time.time()
+        # Binary search loop (standard integer binary search)
+        while low < high:
 
-def produce_json(n_values: List[int], 
-                 models: List[str],
-                 folder: str, 
-                 print_solution: bool,
-                 save_smt: bool = False):
-    """Esegue i test per tutti i modelli e solver specificati"""
+            mid = (low + high) // 2
+            
+            # Build the decision variant: assert bound then check-sat/get-model
+            decision_smt = []
+            # reuse everything up to the final (check-sat) by injecting the bound before it
+            # naive but robust: remove final check-sat/get-model lines and re-add with the assert
+            # Split on "(check-sat)" to inject our assert, preserving rest of the file
+            parts = smtlib_no_min.split('(check-sat)')
+            if len(parts) >= 1:
+                prefix = parts[0]
+                suffix = '(check-sat)'.join(parts[1:])  # in case multiple occurrences
+            else:
+                prefix = smtlib_no_min
+                suffix = ''
+            
+            decision_smt = prefix + f"\n(assert (<= max_abs_balance {mid}))\n(check-sat)\n(get-model)\n" + suffix
+
+            elapsed = time.time() - start_time
+            
+            # Run solver as decision problem (is_optimization=False so cvc5 will produce models)
+            result, model_output = run_smt_solver(
+                smtlib_content=decision_smt,
+                solver_config=solver_config,
+                timeout=floor(time_limit-elapsed),
+                seed=seed,
+                is_optimization=False
+            )
+            
+            # Handle solver response
+            if result == 'sat':
+                # A feasible schedule exists with bound <= mid, tighten upper bound
+                last_sat_model = model_output
+                last_sat_bound = mid
+                high = mid
+            elif result == 'unsat':
+                # Not possible with this bound, increase lower bound
+                low = mid + 1
+            elif result == 'timeout':
+                print("\t\tTimeout reached during binary search.")
+                break
+            else:
+                # unknown or other response: treat as unsat to continue (safe fallback)
+                low = mid + 1
+        
+        # Finished search: low == high is the minimal achievable bound (if any sat found)
+        elapsed = time.time() - start_time
+        
+        if last_sat_model is None:
+            # No feasible solution found at any bound -> unsat / error
+            print("\t\tNo solution found during binary search.")
+            return elapsed, False, None, None
+        else:
+            # Parse final solution from the last sat model
+            sol, obj = parse_solution(last_sat_model, n, is_optimization=True)
+            optimal = (obj == 1) if obj is not None else False
+            print(f"\t\tSolution found in {elapsed:.1f}s (binary search, solver={solver_key}).")
+            if print_solution and sol:
+                print_tournament(sol)
+            return elapsed, optimal, obj, sol
+    
+    # Default: call solver once (z3 / mathsat, or decision models)
+    start_time = time.time()
+    
+    result, model_output = run_smt_solver(
+        smtlib_content=smtlib_content,
+        solver_config=solver_config,
+        timeout=time_limit,
+        seed=seed,
+        is_optimization=is_optimization
+    )
+    
+    elapsed = time.time() - start_time
+    
+    # Parse solution if found
+    if result == 'sat':
+        sol, obj = parse_solution(model_output, n, is_optimization)
+        
+        if is_optimization:
+            # For optimization, check if we reached the lower bound (1)
+            optimal = (obj == 1) if obj is not None else False
+        else:
+            # For decision problem, SAT means optimal
+            optimal = True
+            obj = None
+        
+        print(f"\t\tSolution found in {elapsed:.1f}s.")
+        
+        if print_solution and sol:
+            print_tournament(sol)
+            
+        return elapsed, optimal, obj, sol
+    
+    elif result == 'unsat':
+        print("\t\tNo solution exists.")
+        return elapsed, False, None, None
+    
+    elif result == 'timeout':
+        print("\t\tTimeout reached.")
+        return elapsed, False, None, None
+    
+    else:
+        print(f"\t\tSolver returned: {result}")
+        return elapsed, False, None, None
+
+
+def print_tournament(sol: list):
+    """
+    Print tournament schedule in readable format
+    """
+    if not sol:
+        return
+        
+    periods = len(sol)
+    weeks = len(sol[0]) if sol else 0
+    
+    print("\n--------- TOURNAMENT -----------")
+    # Header
+    print("Period\\Week", end="")
+    for w in range(1, weeks + 1):
+        print(f"\t{w}", end="")
+    print()
+    
+    # Rows
+    for p in range(periods):
+        print(f"{p+1}\t", end="")
+        for w in range(weeks):
+            if sol[p][w]:
+                print(f"{sol[p][w]}", end="\t")
+            else:
+                print("-", end="\t")
+        print()
+    print()
+
+def produce_json(n_values: list,
+                 models: list,
+                 folder: str,
+                 print_solution: bool):
     
     errors = 0
-    results_summary = []
     
     for n in n_values:
-
         print(f'\n\n --- N={n} ---\n')
         
-        for model_name in models:
-            print(f"\n  Model: {model_name}")
-            
-            for solver_name in SOLVER_KEYS:
-                print(f"\n\tSolver: {solver_name}")
+        for solver_key in SOLVER_KEYS:
+            for model in models:
+                print(f'\tSolving {model}, solver={solver_key}...')
                 
                 try:
-                    elapsed, optimal, obj, sol = solve_with_smt(
+                    elapsed, optimal, obj, sol = solve_with_smtlib(
+                        model_name=model,
+                        solver_key=solver_key,
                         n=n,
-                        model_name=model_name,
-                        solver_name=solver_name,
                         time_limit=TIME_LIMIT,
                         seed=SEED,
-                        save_smt=save_smt
+                        print_solution=print_solution
                     )
                     
+                    # Skip if solver doesn't support this problem type
+                    if elapsed == 0 and not optimal and obj is None and sol is None:
+                        continue
+                    
                     if sol:
-
                         check = check_solution(sol, obj, elapsed, optimal)
                         
                         if check == 'Valid solution':
-
-                            write_json(model_name, solver_name, n, elapsed, optimal, obj, sol, folder)
-                            results_summary.append({
-                                "n": n,
-                                "model": model_name,
-                                "solver": solver_name,
-                                "time": f"{elapsed:.1f}s",
-                                "optimal": optimal,
-                                "obj": obj
-                            })
+                            write_json(
+                                model_name=model,
+                                solver=solver_key,
+                                n=n,
+                                time=elapsed,
+                                optimal=optimal,
+                                obj=obj,
+                                sol=sol,
+                                folder=folder
+                            )
                         else:
-                            print(f"\t\t! Validation error: {check}")
+                            print(f"\n\t! Error with n={n}, model={model}, solver={solver_key}: {check}\n")
                             errors += 1
                     else:
-                        write_json(model_name, solver_name, n, elapsed, False, None, None, folder)
-                        results_summary.append({
-                            "n": n,
-                            "model": model_name,
-                            "solver": solver_name,
-                            "time": f"{elapsed:.1f}s",
-                            "optimal": False,
-                            "obj": None
-                        })
-                
+                        write_json(
+                            model_name=model,
+                            solver=solver_key,
+                            n=n,
+                            time=elapsed,
+                            optimal=False,
+                            obj=None,
+                            sol=None,
+                            folder=folder
+                        )
+                        
                 except Exception as e:
-                    print(f"\t\t! Error: {e}")
+                    print(f"\t! Error: {e}")
                     errors += 1
+                
+                print()
         
-        print(f"\n  Results saved to {folder}{n}.json")
-    
-    # Stampa riassunto
-    print(f"\n\n{'='*60}")
-    print(" SUMMARY")
-    print(f"{'='*60}\n")
-    
-    if results_summary:
-        print(f"{'N':<4} {'Model':<15} {'Solver':<10} {'Time':<10} {'Optimal':<10} {'Obj':<10}")
-        print("-" * 60)
-        for r in results_summary:
-            obj_str = str(r['obj']) if r['obj'] is not None else "N/A"
-            print(f"{r['n']:<4} {r['model']:<15} {r['solver']:<10} {r['time']:<10} {r['optimal']!s:<10} {obj_str:<10}")
+        print(f'\tFinished solving for N={n}. Results in {folder}{n}.json\n')
     
     if errors > 0:
-        print(f"\n! Total errors: {errors}")
+        print(f"\nTotal errors: {errors}\n")
     else:
-        print(f"\n✓ All solutions validated successfully!")
+        print("\nAll solutions are valid!\n")
 
-
-def main():
-
-    parser = argparse.ArgumentParser(description="Solve tournament scheduling problems using SMT-LIB solvers")
+def main(initial_n: int, final_n: int, model: str, problem_type: str, print_solution: bool):
     
-    parser.add_argument("--initial_n", type=int, default=2, 
-                       help="Initial value of n (even integer)")
-    parser.add_argument("--final_n", type=int, default=18, 
-                       help="Final value of n (even integer)")
-    parser.add_argument("--problem_type", type=str, default="", 
-                       choices=["", "DEC", "OPT"],
-                       help="Problem type (DEC for decision, OPT for optimization)")
-    parser.add_argument("--modelname", type=str, default="", 
-                       help="Specific model name (e.g., decision1, optimization3)")
-    parser.add_argument("--debug", action='store_true',
-                       help="Print detailed solution information")
-    parser.add_argument("--save_smt", action='store_true',
-                       help="Save generated SMT-LIB files")
+    n_values = range(initial_n, final_n + 1, 2)
+    
+    if model != "":
+        if model in DEC_MODELS + OPT_MODELS:
+            main_models = [model]
+        else:
+            print(f"Unknown model: {model}")
+            return
+    elif problem_type == 'DEC':
+        main_models = DEC_MODELS
+    elif problem_type == 'OPT':
+        main_models = OPT_MODELS
+    else:
+        main_models = DEC_MODELS + OPT_MODELS
+    
+    produce_json(
+        n_values=n_values,
+        models=main_models,
+        folder="../../res/SMT/",
+        print_solution=print_solution
+    )
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Solve tournament scheduling with SMT-lib")
+    parser.add_argument('--initial_n', type=int, default=2, help='Initial value of n (even integer)')
+    parser.add_argument('--final_n', type=int, default=18, help='Final value of n (even integer)')
+    parser.add_argument('--problem_type', type=str, default="", help='Type of problem: DEC or OPT')
+    parser.add_argument('--modelname', type=str, default="", help='Specific model name')
+    parser.add_argument('--debug', type=bool, default=False, help='Print solutions')
     
     args = parser.parse_args()
     
-
-    if args.modelname:
-        if args.modelname in DEC_MODELS + OPT_MODELS:
-            models = [args.modelname]
-        else:
-            print(f"Error: Unknown model '{args.modelname}'")
-            print(f"Available models: {', '.join(DEC_MODELS + OPT_MODELS)}")
-            return
-    elif args.problem_type == "DEC":
-        models = DEC_MODELS
-    elif args.problem_type == "OPT":
-        models = OPT_MODELS
-    else:
-        models = DEC_MODELS + OPT_MODELS
-    
-    # Genera i valori di n
-    n_values = list(range(args.initial_n, args.final_n + 1, 2))
-    
-    print(f"\nConfiguration:")
-    print(f"  N values: {n_values}")
-    print(f"  Models: {', '.join(models)}")
-    print(f"  Time limit: {TIME_LIMIT}s")
-    
-    # Esegui i test
-    produce_json(
-        n_values=n_values,
-        models=models,
-        folder="../../res/SMT/",
-        print_solution=args.debug,
-        save_smt=args.save_smt
+    main(
+        model=args.modelname,
+        initial_n=args.initial_n,
+        final_n=args.final_n,
+        problem_type=args.problem_type,
+        print_solution=args.debug
     )
-
-
-if __name__ == "__main__":
-    main()
