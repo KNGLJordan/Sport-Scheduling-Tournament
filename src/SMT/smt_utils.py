@@ -8,41 +8,32 @@ def run_smt_solver(smtlib_content: str,
                    timeout: int,
                    seed: int,
                    is_optimization: bool = False):
-    """
-    Execute SMT solver with given SMT-lib content
-    Returns: (result_status, model_output)
-    """
-    
+
     # Create temp file for SMT-lib content
     with tempfile.NamedTemporaryFile(mode='w', suffix='.smt2', delete=False) as f:
         temp_file = f.name
         f.write(smtlib_content)
     
     try:
-        # Build command based on solver
         solver_name = solver_config['command']
         cmd = [solver_name]
         
-        # Configure solver-specific options
+        # solvers options
         if 'z3' in solver_name:
-            # Z3 configuration
             cmd.append(f"{solver_config['timeout_flag']}{timeout}")
             cmd.append(f"{solver_config['seed_flag']}{seed}")
             if is_optimization:
-                # Z3 handles optimization natively
                 pass
         
         elif 'cvc5' in solver_name:
-            # CVC5 configuration
-            cmd.append(f"{solver_config['timeout_flag']}{timeout}000")  # ms
+            cmd.append(f"{solver_config['timeout_flag']}{timeout}000")
             cmd.append(solver_config['model_flag'])
-            if not is_optimization:  # CVC5 doesn't support optimization well
+            if not is_optimization:
                 cmd.append('--incremental')
                 cmd.append('--produce-models')
             cmd.append(f"{solver_config['seed_flag']}{seed}")
         
         elif 'mathsat' in solver_name:
-            # MathSAT configuration
             cmd.append(f"{solver_config['timeout_flag']}{timeout}")
             cmd.append(f"{solver_config['seed_flag']}{seed}")
             cmd.append('-model')
@@ -50,15 +41,11 @@ def run_smt_solver(smtlib_content: str,
                 cmd.append('-opt.priority=box')
         
         elif 'yices' in solver_name:
-            # Yices2 configuration
             cmd.append(f"{solver_config['timeout_flag']}{timeout}")
-            # Yices2 doesn't support random seed
             cmd.append('--incremental')
         
-        # Add the SMT file
         cmd.append(temp_file)
         
-        # Run solver
         try:
             result = subprocess.run(
                 cmd,
@@ -69,11 +56,9 @@ def run_smt_solver(smtlib_content: str,
             output = result.stdout
             error = result.stderr
             
-            # Debug output for troubleshooting
             if not output and error:
                 print(f"\t\tSolver stderr: {error[:200]}")
             
-            # Parse result based on solver
             if 'z3' in solver_name:
                 if 'sat' in output and 'unsat' not in output:
                     return 'sat', output
@@ -83,17 +68,14 @@ def run_smt_solver(smtlib_content: str,
                     return 'unknown', None
             
             elif 'cvc5' in solver_name:
-                # CVC5 output format
                 if 'sat' in output and 'unsat' not in output:
                     return 'sat', output
                 elif 'unsat' in output:
                     return 'unsat', None
                 else:
-                    # CVC5 might need different parsing
                     return 'unknown', None
             
             elif 'mathsat' in solver_name:
-                # MathSAT output format
                 if 'sat' in output:
                     if 'unsat' not in output:
                         return 'sat', output
@@ -103,7 +85,6 @@ def run_smt_solver(smtlib_content: str,
                     return 'unknown', None
             
             elif 'yices' in solver_name:
-                # Yices output format
                 if 'sat' in output and 'unsat' not in output:
                     return 'sat', output
                 elif 'unsat' in output:
@@ -112,7 +93,7 @@ def run_smt_solver(smtlib_content: str,
                     return 'unknown', None
             
             else:
-                # Generic parsing
+                # generic
                 if 'sat' in output and 'unsat' not in output:
                     return 'sat', output
                 elif 'unsat' in output:
@@ -129,10 +110,6 @@ def run_smt_solver(smtlib_content: str,
             os.unlink(temp_file)
 
 def parse_solution(model_output: str, n: int, is_optimization: bool = False):
-    """
-    Parse SMT solver output to extract solution
-    Returns: (solution, objective_value)
-    """
     
     if not model_output:
         return None, None
@@ -140,11 +117,9 @@ def parse_solution(model_output: str, n: int, is_optimization: bool = False):
     weeks = n - 1
     periods = n // 2
     
-    # Initialize solution structure
     solution = [[None for _ in range(weeks)] for _ in range(periods)]
     
-    # Store parsed values
-    m_vals = {}  # M_i_j -> week
+    w_vals = {}  # W_i_j -> week
     p_vals = {}  # P_i_j -> period  
     h_vals = {}  # H_i_j -> bool (home)
     
@@ -159,8 +134,8 @@ def parse_solution(model_output: str, n: int, is_optimization: bool = False):
         var_type, i, j, data_type, value = match
         i, j = int(i), int(j)
         
-        if var_type == 'M':
-            m_vals[(i, j)] = int(value)
+        if var_type == 'W':
+            w_vals[(i, j)] = int(value)
         elif var_type == 'P':
             p_vals[(i, j)] = int(value)
         elif var_type == 'H':
@@ -169,14 +144,14 @@ def parse_solution(model_output: str, n: int, is_optimization: bool = False):
     # Pattern 2: MathSAT format
     # ( (M_0_1 2) )
     mathsat_pattern = r'\(\s*\((\w+)_(\d+)_(\d+)\s+([^\)]+)\)\s*\)'
-    if not m_vals:  # Only try if first pattern didn't work
+    if not w_vals:  # Only try if first pattern didn't work
         matches = re.findall(mathsat_pattern, model_output)
         for match in matches:
             var_type, i, j, value = match
             i, j = int(i), int(j)
             
-            if var_type == 'M':
-                m_vals[(i, j)] = int(value)
+            if var_type == 'W':
+                w_vals[(i, j)] = int(value)
             elif var_type == 'P':
                 p_vals[(i, j)] = int(value)
             elif var_type == 'H':
@@ -185,14 +160,14 @@ def parse_solution(model_output: str, n: int, is_optimization: bool = False):
     # Pattern 3: Simple format
     # M_0_1 = 2
     simple_pattern = r'(\w+)_(\d+)_(\d+)\s*=\s*([^\s\)]+)'
-    if not m_vals:  # Only try if previous patterns didn't work
+    if not w_vals:  # Only try if previous patterns didn't work
         matches = re.findall(simple_pattern, model_output)
         for match in matches:
             var_type, i, j, value = match
             i, j = int(i), int(j)
             
-            if var_type == 'M':
-                m_vals[(i, j)] = int(value)
+            if var_type == 'W':
+                w_vals[(i, j)] = int(value)
             elif var_type == 'P':
                 p_vals[(i, j)] = int(value)
             elif var_type == 'H':
@@ -202,8 +177,8 @@ def parse_solution(model_output: str, n: int, is_optimization: bool = False):
     matches_found = False
     for i in range(n):
         for j in range(i + 1, n):
-            if (i, j) in m_vals and (i, j) in p_vals:
-                week = m_vals[(i, j)]
+            if (i, j) in w_vals and (i, j) in p_vals:
+                week = w_vals[(i, j)]
                 period = p_vals[(i, j)]
                 
                 # Determine home team for optimization problem

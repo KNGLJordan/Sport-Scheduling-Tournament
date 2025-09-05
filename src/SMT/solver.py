@@ -9,7 +9,6 @@ from solution_checker import check_solution
 TIME_LIMIT = 30
 SEED = 63
 
-# SMT solvers configuration
 SOLVER_DICT = {
     'z3': {
         'command': 'z3',
@@ -52,7 +51,6 @@ SOLVER_KEYS = [
     'yices2'
 ]
 
-# Models location
 MODELS_FOLDER = 'models/'
 
 DEC_MODELS = [
@@ -104,10 +102,7 @@ def solve_with_smtlib(model_name: str,
                       time_limit: int,
                       seed: int,
                       print_solution: bool = False):
-    """
-    Solve instance using SMT-lib format
-    """
-    # Import the model generator
+
     if model_name == 'decision_smt':
         from models.decision_smt import generate_smtlib
         is_optimization = False
@@ -117,35 +112,29 @@ def solve_with_smtlib(model_name: str,
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
-    # Generate SMT-lib content
     smtlib_content = generate_smtlib(n)
     
-    # Get solver configuration
     solver_config = SOLVER_DICT[solver_key]
     
-    # Special handling: binary search for solvers that don't support optimization
+    # binary search for solvers that don't support optimization
     if is_optimization and solver_key in ['cvc5', 'yices2']:
-        # We'll do integer binary search on max_abs_balance in range [0, weeks]
+
         weeks = n - 1
         low = 0
         high = weeks
         last_sat_model = None
         last_sat_bound = None
         
-        # Remove any explicit minimize directive to avoid solver errors
         smtlib_no_min = smtlib_content.replace('(minimize max_abs_balance)', '')
         
         start_time = time.time()
-        # Binary search loop (standard integer binary search)
+
         while low < high:
 
             mid = (low + high) // 2
             
-            # Build the decision variant: assert bound then check-sat/get-model
             decision_smt = []
-            # reuse everything up to the final (check-sat) by injecting the bound before it
-            # naive but robust: remove final check-sat/get-model lines and re-add with the assert
-            # Split on "(check-sat)" to inject our assert, preserving rest of the file
+
             parts = smtlib_no_min.split('(check-sat)')
             if len(parts) >= 1:
                 prefix = parts[0]
@@ -158,7 +147,7 @@ def solve_with_smtlib(model_name: str,
 
             elapsed = time.time() - start_time
             
-            # Run solver as decision problem (is_optimization=False so cvc5 will produce models)
+            # Run solver as decision problem
             result, model_output = run_smt_solver(
                 smtlib_content=decision_smt,
                 solver_config=solver_config,
@@ -167,39 +156,37 @@ def solve_with_smtlib(model_name: str,
                 is_optimization=False
             )
             
-            # Handle solver response
             if result == 'sat':
-                # A feasible schedule exists with bound <= mid, tighten upper bound
                 last_sat_model = model_output
                 last_sat_bound = mid
                 high = mid
+
             elif result == 'unsat':
-                # Not possible with this bound, increase lower bound
                 low = mid + 1
+
             elif result == 'timeout':
                 print("\t\tTimeout reached during binary search.")
                 break
+
             else:
-                # unknown or other response: treat as unsat to continue (safe fallback)
                 low = mid + 1
         
-        # Finished search: low == high is the minimal achievable bound (if any sat found)
         elapsed = time.time() - start_time
         
         if last_sat_model is None:
-            # No feasible solution found at any bound -> unsat / error
             print("\t\tNo solution found during binary search.")
             return elapsed, False, None, None
         else:
-            # Parse final solution from the last sat model
+
             sol, obj = parse_solution(last_sat_model, n, is_optimization=True)
             optimal = (obj == 1) if obj is not None else False
             print(f"\t\tSolution found in {elapsed:.1f}s (binary search, solver={solver_key}).")
+            
             if print_solution and sol:
                 print_tournament(sol)
             return elapsed, optimal, obj, sol
     
-    # Default: call solver once (z3 / mathsat, or decision models)
+    # (z3 / mathsat, or decision models)
     start_time = time.time()
     
     result, model_output = run_smt_solver(
@@ -212,15 +199,12 @@ def solve_with_smtlib(model_name: str,
     
     elapsed = time.time() - start_time
     
-    # Parse solution if found
     if result == 'sat':
         sol, obj = parse_solution(model_output, n, is_optimization)
         
         if is_optimization:
-            # For optimization, check if we reached the lower bound (1)
             optimal = (obj == 1) if obj is not None else False
         else:
-            # For decision problem, SAT means optimal
             optimal = True
             obj = None
         
@@ -296,7 +280,6 @@ def produce_json(n_values: list,
                         print_solution=print_solution
                     )
                     
-                    # Skip if solver doesn't support this problem type
                     if elapsed == 0 and not optimal and obj is None and sol is None:
                         continue
                     

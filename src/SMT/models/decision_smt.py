@@ -1,7 +1,4 @@
 def generate_smtlib(n: int):
-    """
-    Generate SMT-lib content for the decision version of tournament scheduling
-    """
     
     weeks = n - 1
     periods = n // 2
@@ -12,8 +9,6 @@ def generate_smtlib(n: int):
     smt_content.append("(set-info :smt-lib-version 2.6)")
     smt_content.append("(set-logic QF_LIA)")
     smt_content.append("(set-option :produce-models true)")
-    smt_content.append("")
-    
     
     for i in range(n):
         for j in range(i + 1, n):
