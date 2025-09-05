@@ -5,10 +5,9 @@ def generate_smtlib(n: int):
     
     smt_content = []
     
-    # Logic - Using standard SMT-lib 2.6 format
-    smt_content.append("(set-info :smt-lib-version 2.6)")
-    smt_content.append("(set-logic QF_LIA)")
+    # Logic
     smt_content.append("(set-option :produce-models true)")
+    smt_content.append("(set-logic QF_LIA)")
     
     for i in range(n):
         for j in range(i + 1, n):

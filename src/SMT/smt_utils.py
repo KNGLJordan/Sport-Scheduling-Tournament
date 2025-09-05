@@ -110,110 +110,61 @@ def run_smt_solver(smtlib_content: str,
             os.unlink(temp_file)
 
 def parse_solution(model_output: str, n: int, is_optimization: bool = False):
-    
     if not model_output:
         return None, None
     
     weeks = n - 1
     periods = n // 2
-    
     solution = [[None for _ in range(weeks)] for _ in range(periods)]
     
-    w_vals = {}  # W_i_j -> week
-    p_vals = {}  # P_i_j -> period  
-    h_vals = {}  # H_i_j -> bool (home)
+    w_vals = {}
+    p_vals = {}
+    h_vals = {}
     
-    # Try different parsing patterns for different solver outputs
-    
-    # Pattern 1: Z3/CVC5 format with define-fun
-    # (define-fun M_0_1 () Int 2)
-    define_pattern = r'\(define-fun\s+(\w+)_(\d+)_(\d+)\s+\(\)\s+(\w+)\s+([^\)]+)\)'
-    matches = re.findall(define_pattern, model_output)
-    
-    for match in matches:
-        var_type, i, j, data_type, value = match
-        i, j = int(i), int(j)
-        
-        if var_type == 'W':
-            w_vals[(i, j)] = int(value)
-        elif var_type == 'P':
-            p_vals[(i, j)] = int(value)
-        elif var_type == 'H':
-            h_vals[(i, j)] = value.lower() == 'true'
-    
-    # Pattern 2: MathSAT format
-    # ( (M_0_1 2) )
-    mathsat_pattern = r'\(\s*\((\w+)_(\d+)_(\d+)\s+([^\)]+)\)\s*\)'
-    if not w_vals:  # Only try if first pattern didn't work
-        matches = re.findall(mathsat_pattern, model_output)
-        for match in matches:
-            var_type, i, j, value = match
+    # Yices2 format: (= W_0_1 4)
+    if "(= W_" in model_output:
+        matches = re.findall(r'\(=\s+(\w+)_(\d+)_(\d+)\s+(\d+)\)', model_output)
+        for var_type, i, j, value in matches:
             i, j = int(i), int(j)
-            
             if var_type == 'W':
                 w_vals[(i, j)] = int(value)
             elif var_type == 'P':
                 p_vals[(i, j)] = int(value)
             elif var_type == 'H':
-                h_vals[(i, j)] = value.lower() == 'true'
+                h_vals[(i, j)] = int(value) == 1
     
-    # Pattern 3: Simple format
-    # M_0_1 = 2
-    simple_pattern = r'(\w+)_(\d+)_(\d+)\s*=\s*([^\s\)]+)'
-    if not w_vals:  # Only try if previous patterns didn't work
-        matches = re.findall(simple_pattern, model_output)
-        for match in matches:
-            var_type, i, j, value = match
+    # MathSAT/Z3/CVC5 format: (define-fun W_0_1 () Int 0)
+    elif "define-fun" in model_output:
+        matches = re.findall(r'\(define-fun\s+(\w+)_(\d+)_(\d+)\s+\(\)\s+\w+\s+([^\)]+)\)', model_output)
+        for var_type, i, j, value in matches:
             i, j = int(i), int(j)
-            
             if var_type == 'W':
                 w_vals[(i, j)] = int(value)
             elif var_type == 'P':
                 p_vals[(i, j)] = int(value)
             elif var_type == 'H':
-                h_vals[(i, j)] = value.lower() in ['true', '1']
+                h_vals[(i, j)] = value.strip().lower() == 'true'
     
-    # Build solution from parsed values
-    matches_found = False
     for i in range(n):
         for j in range(i + 1, n):
             if (i, j) in w_vals and (i, j) in p_vals:
                 week = w_vals[(i, j)]
                 period = p_vals[(i, j)]
                 
-                # Determine home team for optimization problem
                 if h_vals and (i, j) in h_vals:
-                    if h_vals[(i, j)]:
-                        match = [i + 1, j + 1]  # i is home
-                    else:
-                        match = [j + 1, i + 1]  # j is home
+                    match = [i + 1, j + 1] if h_vals[(i, j)] else [j + 1, i + 1]
                 else:
-                    # No home info (decision problem), just use natural order
                     match = [i + 1, j + 1]
                 
                 if 0 <= period < periods and 0 <= week < weeks:
                     solution[period][week] = match
-                    matches_found = True
     
-    if not matches_found:
-        return None, None
-    
-    # Extract objective value for optimization
+    # Get objective for optimization
     obj = None
     if is_optimization:
-        # Try different patterns for objective value
-        obj_patterns = [
-            r'\(define-fun\s+max_abs_balance\s+\(\)\s+Int\s+(\d+)\)',
-            r'\(\s*\(max_abs_balance\s+(\d+)\)\s*\)',
-            r'max_abs_balance\s*=\s*(\d+)',
-            r'objectives:\s*\(max_abs_balance\s+(\d+)\)'
-        ]
-        
-        for pattern in obj_patterns:
-            obj_matches = re.findall(pattern, model_output)
-            if obj_matches:
-                obj = int(obj_matches[0])
-                break
+        obj_match = re.search(r'(?:define-fun|=)\s+(?:max_abs_balance|obj)\s+(?:\(\)\s+Int\s+)?(\d+)', model_output)
+        if obj_match:
+            obj = int(obj_match.group(1))
     
     return solution, obj
 

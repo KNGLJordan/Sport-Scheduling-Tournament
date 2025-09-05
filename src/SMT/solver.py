@@ -2,12 +2,14 @@ import argparse
 import os
 import json
 import time
+import math
 from math import floor
 from smt_utils import run_smt_solver, parse_solution
 from solution_checker import check_solution
 
-TIME_LIMIT = 30
+TIME_LIMIT = 300
 SEED = 63
+SAVE_SMT = True
 
 SOLVER_DICT = {
     'z3': {
@@ -26,14 +28,14 @@ SOLVER_DICT = {
         'opt_flag': '--produce-models',
         'incremental': False
     },
-    'mathsat': {
-        'command': 'mathsat',
-        'timeout_flag': '-timeout=',
-        'seed_flag': '-random_seed=',
-        'model_flag': '-model',
-        'opt_flag': '-opt.priority=box',
-        'incremental': False
-    },
+    # 'mathsat': {
+    #     'command': 'mathsat',
+    #     'timeout_flag': '-timeout=',
+    #     'seed_flag': '-random_seed=',
+    #     'model_flag': '-model',
+    #     'opt_flag': '-opt.priority=box',
+    #     'incremental': False
+    # },
     'yices2': {
         'command': 'yices-smt2',
         'timeout_flag': '--timeout=',
@@ -47,7 +49,7 @@ SOLVER_DICT = {
 SOLVER_KEYS = [
     'z3', 
     'cvc5', 
-    'mathsat', 
+    # 'mathsat', 
     'yices2'
 ]
 
@@ -113,6 +115,14 @@ def solve_with_smtlib(model_name: str,
         raise ValueError(f"Unknown model: {model_name}")
     
     smtlib_content = generate_smtlib(n)
+
+    # save file for debugging
+    if SAVE_SMT:
+        smt_filename = f"models_smt/{model_name}_n{n}.smt2"
+        os.makedirs(os.path.dirname(smt_filename), exist_ok=True)
+        with open(smt_filename, 'w') as f:
+            f.write(smtlib_content)
+        print(f"\t\tSaved SMT file to {smt_filename}")
     
     solver_config = SOLVER_DICT[solver_key]
     
@@ -120,7 +130,7 @@ def solve_with_smtlib(model_name: str,
     if is_optimization and solver_key in ['cvc5', 'yices2']:
 
         weeks = n - 1
-        low = 0
+        low = 1
         high = weeks
         last_sat_model = None
         last_sat_bound = None
@@ -129,10 +139,10 @@ def solve_with_smtlib(model_name: str,
         
         start_time = time.time()
 
-        while low < high:
+        while low <= high:
 
             mid = (low + high) // 2
-            
+
             decision_smt = []
 
             parts = smtlib_no_min.split('(check-sat)')
@@ -159,7 +169,7 @@ def solve_with_smtlib(model_name: str,
             if result == 'sat':
                 last_sat_model = model_output
                 last_sat_bound = mid
-                high = mid
+                high = mid - 1
 
             elif result == 'unsat':
                 low = mid + 1
