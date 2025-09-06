@@ -35,7 +35,7 @@ models = {
     "sat_z3_binseach_bw": [sports_scheduling, "bw"],
 }
 
-def save_result(n, model_name, result, optimize, folder='../res/SAT', timeout=300):
+def save_result(n, model_name, result, optimize, folder='../../res/SAT', timeout=300):
     elapsed, optimal, obj, schedule = result
 
     # Ensure obj is the string 'None' if it is None
